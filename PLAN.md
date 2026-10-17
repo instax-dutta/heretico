@@ -197,9 +197,9 @@ serves files.
 | `/` | Top picks, totals, family entry points, search |
 | `/leaderboard` | Filterable + sortable ranked table (client-side, URL state) |
 | `/models` | Canonical model index with best pick per model |
-| `/models/[owner]/[name]` | All Heretic versions of one base model, ranked, with comparison |
+| `/models/[...id]` | All Heretic versions of one base model, ranked, with comparison |
 | `/families` / `/families/[slug]` | Family leaderboards |
-| `/models/[owner]/[name]/[repo]` | Direct conversion detail: evidence, metrics, source link |
+| `/repo/[...id]` | Direct conversion detail: evidence, metrics, source link |
 | `/methodology` | Scoring, confidence, data provenance, caveats |
 | `/sitemap.xml`, `/robots.txt` | Search-engine surfaces |
 
