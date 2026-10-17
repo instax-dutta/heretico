@@ -14,9 +14,9 @@ Ships as a static export for Netlify (free tier); `NEXT_PUBLIC_SITE_URL`
 defaults to `https://heretico.sdad.pro`.
 
 At the time of the committed snapshot: **8,209 repositories indexed, 6,188
-verified, 1,046 canonical upstream models, 867 measured ablation recipes, 1,265
-direct Heretic conversions**, across 62.7M downloads. The index refreshes daily;
-see [Freshness](#freshness).
+verified, 1,046 canonical upstream models, 1,016 measured ablation recipes,
+1,265 direct Heretic conversions**, across 62.7M downloads. The index refreshes
+daily; see [Freshness](#freshness).
 
 ---
 
@@ -50,8 +50,13 @@ model listings  ──►   discovery +   ──►   classify → resolve  ─�
    plus its quants and re-uploads share a row, so quant spam cannot climb the
    list). Re-uploads with identical numbers merge. Metrics are never averaged:
    one published pair wins, and artifacts without their own numbers inherit the
-   recipe's with `confidence: "inherited"`.
-6. **Score.** See [Scoring](#scoring).
+   recipe's with `confidence: "inherited"` — an artifact that published its own
+   pair keeps its own confidence, because the recipe's numbers may not be its
+   own. A verified artifact whose ablation parent is not on the Hub stands in as
+   its own ablation, so a published number is never dropped for lack of a
+   reachable parent.
+6. **Score.** See [Scoring](#scoring). Nothing beyond a single self-published card
+   reaches rank 1: see [Verification](#verification).
 7. **Publish.** `data/snapshot.json` is the single source of truth; every page is
    prerendered from it, and `public/data/index.json` is a trimmed copy the
    browser uses to filter without a server.
@@ -113,9 +118,10 @@ All routes are prerendered; `trailingSlash` is on, so every URL ends in `/`.
 | `/models/` | Canonical upstream models with their best conversion |
 | `/models/<owner>/<name>/` | Every Heretic version of one model, ranked, with the Pareto set |
 | `/families/`, `/families/<slug>/` | Model-family leaderboards |
-| `/repo/<owner>/<name>/` | One Hugging Face artifact: metrics, evidence, provenance, source link |
+| `/repo/<owner>/<name>/` | One Hugging Face artifact that published metrics: evidence, provenance, source link |
 | `/methodology/` | How scoring, confidence and provenance work, and what the data cannot say |
 | `/sitemap.xml`, `/robots.txt` | Generated from the snapshot at build time |
+| `/llms.txt` | Plain-text guide for language models, plus JSON-LD `Dataset` records on model pages |
 
 Filtering, sorting, search and pagination run client-side against
 `/data/index.json`, with the query reflected in the URL (`?q=`, `?family=`,
@@ -123,6 +129,28 @@ Filtering, sorting, search and pagination run client-side against
 view can be linked or bookmarked.
 
 ---
+
+## Verification
+
+Every number is self-reported; this site never re-runs an evaluation. What it
+can check is what stands behind a number:
+
+| | meaning |
+| :-- | :-- |
+| **verified** | the repository that published the numbers also ships real model weights, and its KL is one an abliteration can physically produce |
+| **unverified** | nothing corroborates the card. Still ranked, never rank 1 |
+| **inherited** | a quant or derivative with no numbers of its own, showing its parent's |
+
+The rule exists because the score is trivially gameable otherwise. A card
+claiming `KL 0.0001` and `refusals 0/100` scores a perfect 100, and nothing in
+the card distinguishes it from a measured one. Uploading weights costs
+gigabytes, which a fabricated card does not, so `verified` means real weights
+plus a plausible KL. An unverified row keeps its score but can never hold rank
+1, and a model whose conversions are all unverified gets no best version at
+all.
+
+Downloads are deliberately **not** part of verification: they are Hub counters
+that mirrors, pipelines and bots inflate. They break ties and nothing more.
 
 ## Scoring
 
@@ -133,7 +161,9 @@ score     = 100 * (0.5 * (1 - rate) + 0.5 * retention)      rounded to 2 dp
 ```
 
 Both terms are bounded and the score is absolute rather than percentile-based,
-so it stays comparable across model sizes, cohorts and refresh days. A recipe is
+so it stays comparable across model sizes, cohorts and refresh days. Verified
+conversions outrank unverified ones whatever the score, so the top of the
+leaderboard is always a row something stands behind. A recipe is
 ranked only when the card publishes KL *and* a refusal count with a denominator
 (`confidence` of `high`, `medium` or `inherited`); anything else is listed as
 unranked rather than scored. Within one origin, a recipe is on the **Pareto**
@@ -163,8 +193,10 @@ results; the oracles are:
 
 `scripts/verify/snapshot.mjs` is the strict one: it re-derives scores, refusal
 rates, Pareto flags and best picks from the published rows and rejects the
-snapshot if any of them disagree, if a repo is unverified, or if coverage drops
-below the depth floor.
+snapshot if any of them disagree, if a repo is unverified, if an `inherited`
+pair does not match the repo it cites as its source, if a verified artifact that
+published its own metrics is on no leaderboard row, if anything unverified holds
+a best pick, or if coverage drops below the depth floor.
 
 ---
 
@@ -184,7 +216,9 @@ domain, then deploy. No functions, no build plugins, no database.
 3. crawl with `HF_TOKEN` (set it as a repository secret for higher rate limits),
 4. rebuild and validate the snapshot,
 5. build the site,
-6. commit `data/snapshot.json` if anything changed — Netlify then redeploys.
+6. commit `data/snapshot.json` if the data changed — Netlify then redeploys.
+   `updatedAt` alone does not count as a change, so a day with no new or edited
+   repository skips the commit and the redeploy.
 
 Because the cache is keyed by commit sha, a daily run only fetches cards whose
 repository actually changed.
@@ -210,6 +244,12 @@ repository actually changed.
 
 - **Every number is self-reported by the model author.** Nothing here is
   re-measured; the directory reports what cards claim and links to the source.
+  `unverified` means nothing corroborates the card, not that it is false.
+- **A KL below 1e-4 is not a measurement.** Abliteration moves weights, so the
+  reported divergence cannot round to nothing. Such rows are flagged
+  `implausible` and cannot be verified.
+- **An artifact with no published metrics gets no `/repo/` page.** It still
+  appears in its model's artifact table, linking to the Hub.
 - Refusal rates are only comparable within a card's own evaluation setup, and a
   card that omits a denominator stays unranked.
 - A range such as `0–1/100` is recorded as its worst case (`1/100`).
@@ -217,6 +257,8 @@ repository actually changed.
   weights are unchanged) and is flagged `implausible` in the table.
 - Coverage is uneven on purpose: 6,188 of 8,209 discovered repositories are
   verified, and only those appear on a page; the rest are counted, not linked.
+- An "Inherited" badge means the cited source publishes exactly those numbers.
+  It never appears on a repo that published a pair of its own.
 - Model weights and cards belong to their authors; this site only reads public
   metadata from the Hugging Face Hub.
 

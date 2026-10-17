@@ -12,42 +12,42 @@ Scope: A working, tested static directory of Heretic models — crawl → parse 
 - [x] G2: Card parsing extracts base model, Heretic version, KL and refusals from the committed real-world fixtures
   CHECK: node scripts/verify/suite.mjs tests/parse
   EXPECT: SUITE PASSED tests/parse
-  EVIDENCE: `SUITE PASSED tests/parse` — 21 tests over committed cards (table, column-oriented, bullet, prose, range and quant-noise cases)
+  EVIDENCE: `SUITE PASSED tests/parse` — 21 tests over committed cards (table, column-oriented, bullet, prose, range and quant-noise cases). Card confidence now tops out at `medium`: layout quality is not truth, so corroboration past one card moved to `Recipe.verification`
 
 - [x] G3: Ingestion classifies repos, resolves canonical origins, groups recipes and propagates inherited metrics correctly
   CHECK: node scripts/verify/suite.mjs tests/ingest
   EXPECT: SUITE PASSED tests/ingest
-  EVIDENCE: `SUITE PASSED tests/ingest` — 22 tests; includes case-variant origin folding (regression for the duplicate-origin/duplicate-best-pick bug)
+  EVIDENCE: `SUITE PASSED tests/ingest` — 33 tests, including the verified/unverified split, the KL floor, and merge-time verification; includes case-variant origin folding (regression for the duplicate-origin/duplicate-best-pick bug), case-folded parent lookup in recipe grouping, an artifact keeping its own published confidence instead of being relabelled `inherited`, and a measured artifact with no indexed ablation ancestor still reaching the leaderboard
 
 - [x] G4: Scoring, Pareto frontiers, best picks and rank ties behave as specified
   CHECK: node scripts/verify/suite.mjs tests/scoring
   EXPECT: SUITE PASSED tests/scoring
-  EVIDENCE: `SUITE PASSED tests/scoring` — 13 tests
+  EVIDENCE: `SUITE PASSED tests/scoring` — 12 tests, including that a fabricated zero-KL/zero-refusal card cannot take rank 1 and that a cohort with nothing verified elects no best pick
 
 - [x] G5: Filtering, sorting, search and pagination return correct result sets and stable pages
   CHECK: node scripts/verify/suite.mjs tests/query
   EXPECT: SUITE PASSED tests/query
-  EVIDENCE: `SUITE PASSED tests/query` — 12 tests
+  EVIDENCE: `SUITE PASSED tests/query` — 12 tests, including that no sort direction can place an unverified row first
 
 - [x] G6: The committed snapshot is schema-valid, internally consistent and covers real data at the required depth
   CHECK: node scripts/verify/snapshot.mjs
   EXPECT: SNAPSHOT VERIFIED
-  EVIDENCE: `SNAPSHOT VERIFIED` — 8209 indexed / 6188 verified repos, 1046 origins, 867 recipes (867 ranked), 1265 direct conversions, 3868 repos with metrics, 62.7M downloads; Pareto/best-pick recomputed from published rows
+  EVIDENCE: `SNAPSHOT VERIFIED` — 8209 indexed / 6188 verified repos, 1046 origins, 1016 recipes (886 verified / 130 unverified), 1265 direct conversions, 3869 repos with metrics, 62.7M downloads; Pareto/best-pick recomputed from published rows, every `inherited` pair matches the repo it cites, every verified artifact that published its own metrics is on a leaderboard row, and no unverified recipe holds a best pick
 
 - [x] G7: A production static export serves every functional route with real snapshot content
   CHECK: node scripts/verify/app-smoke.mjs
   EXPECT: APP SMOKE PASSED
-  EVIDENCE: `APP SMOKE PASSED` — 10 routes checked against the export, 1046 model pages + 6188 repo pages prerendered
+  EVIDENCE: `APP SMOKE PASSED` — 10 routes checked against the export, 1046 model pages + 3869 repo pages prerendered; the model index renders 50 rows per page and each model artifact table caps at 50 rows. Export is 463 MB / 25,988 files, down from 637 MB / 37,582
 
 - [x] G8: SEO surfaces (metadata, sitemap, robots) are generated from the snapshot and every sitemap URL resolves
   CHECK: node scripts/verify/seo.mjs
   EXPECT: SEO SURFACES VERIFIED
-  EVIDENCE: `SEO SURFACES VERIFIED` — 7508 sitemap URLs all resolve, unique titles on sampled pages
+  EVIDENCE: `SEO SURFACES VERIFIED` — 5189 sitemap URLs all resolve, unique titles on sampled pages. `/repo/` is generated only for the 3869 artifacts that published metrics; `public/llms.txt` ships and model pages carry JSON-LD `Dataset` records
 
 - [x] G9: Freshness automation is wired: incremental crawl skips unchanged repos and the scheduled workflow rebuilds and validates the snapshot
   CHECK: node scripts/verify/automation.mjs
   EXPECT: AUTOMATION VERIFIED
-  EVIDENCE: `AUTOMATION VERIFIED` — workflow (schedule, tests, static checks, crawl, snapshot, verify, commit, README cache), netlify.toml (out/, npm run build), 4 incremental-cache tests
+  EVIDENCE: `AUTOMATION VERIFIED` — workflow (schedule, tests, static checks, crawl, snapshot, verify, change-guarded commit, README cache), netlify.toml (out/, npm run build), 4 incremental-cache tests
 
 - [x] G10: The DOX tree documents every durable boundary and is internally consistent
   CHECK: node scripts/verify/dox.mjs
