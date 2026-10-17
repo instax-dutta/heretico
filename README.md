@@ -10,7 +10,7 @@ copies them from the model it descends from, or does not report them at all.
 This site reads those cards, works out what each repository actually *is*,
 groups the artifacts that belong to the same ablation, and ranks the results.
 
-Deployed as a static export on Netlify (free tier); `NEXT_PUBLIC_SITE_URL`
+Ships as a static export for Netlify (free tier); `NEXT_PUBLIC_SITE_URL`
 defaults to `https://heretico.sdad.pro`.
 
 At the time of the committed snapshot: **8,209 repositories indexed, 6,188
