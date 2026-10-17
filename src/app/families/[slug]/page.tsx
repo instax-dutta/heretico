@@ -55,7 +55,7 @@ export default async function FamilyPage({ params }: PageProps<"/families/[slug]
         <p className="mb-3 text-sm text-zinc-500">
           One row per base model. The full list of attempts is on each model page.
         </p>
-        <div className="overflow-hidden rounded-lg border border-zinc-200 bg-white px-4 dark:border-zinc-800 dark:bg-zinc-950">
+        <div className="overflow-hidden rounded-lg border px-4 border-zinc-800 bg-zinc-950">
           <RecipeTable rows={ranked} />
         </div>
       </section>
@@ -67,7 +67,7 @@ export default async function FamilyPage({ params }: PageProps<"/families/[slug]
             <Link
               key={origin.id}
               href={`/models/${origin.id}/`}
-              className="flex items-baseline justify-between gap-2 rounded border border-zinc-200 bg-white px-3 py-2 text-sm hover:border-zinc-400 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:border-zinc-600"
+              className="flex items-baseline justify-between gap-2 rounded border px-3 py-2 text-sm border-zinc-800 bg-zinc-950 hover:border-zinc-600"
             >
               <span className="truncate">{origin.displayName}</span>
               <span className="shrink-0 text-xs text-zinc-500">

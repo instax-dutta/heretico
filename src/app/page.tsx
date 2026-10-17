@@ -20,7 +20,7 @@ export default function HomePage() {
         <h1 className="max-w-3xl text-3xl font-semibold tracking-tight sm:text-4xl">
           Find the best Heretic version of any open model.
         </h1>
-        <p className="max-w-2xl text-zinc-600 dark:text-zinc-400">
+        <p className="max-w-2xl text-zinc-400">
           Every Heretic (abliterated) conversion on Hugging Face, resolved back to the
           model it came from and ranked by the two numbers that actually matter: how
           little the model drifted, and how few refusals remain.
@@ -30,19 +30,19 @@ export default function HomePage() {
             type="search"
             name="q"
             placeholder="Qwen3-4B, gemma-3-12b-it, gpt-oss-20b…"
-            className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-500 dark:border-zinc-700 dark:bg-zinc-900"
+            className="w-full rounded-md border px-3 py-2 text-sm outline-none focus:border-zinc-500 border-zinc-700 bg-zinc-900"
             aria-label="Search for a model"
           />
           <button
             type="submit"
-            className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+            className="rounded-md px-4 py-2 font-medium bg-zinc-100 text-zinc-900 hover:bg-zinc-300"
           >
             Find
           </button>
         </form>
       </section>
 
-      <section className="grid grid-cols-2 gap-6 rounded-lg border border-zinc-200 bg-white p-5 sm:grid-cols-4 dark:border-zinc-800 dark:bg-zinc-950">
+      <section className="grid grid-cols-2 gap-6 rounded-lg border p-5 sm:grid-cols-4 border-zinc-800 bg-zinc-950">
         <Stat label="Models indexed" value={formatCompact(snapshot.totals.origins)} hint="canonical base models" />
         <Stat
           label="Ranked conversions"
@@ -88,7 +88,7 @@ export default function HomePage() {
             <Link
               key={family.slug}
               href={familyHref(family.slug)}
-              className="rounded-lg border border-zinc-200 bg-white p-4 hover:border-zinc-400 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:border-zinc-600"
+              className="rounded-lg border p-4 border-zinc-800 bg-zinc-950 hover:border-zinc-600"
             >
               <div className="font-medium">{family.label}</div>
               <div className="text-xs text-zinc-500">
@@ -99,8 +99,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="rounded-lg border border-zinc-200 bg-white p-5 text-sm text-zinc-600 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400">
-        <h2 className="mb-2 font-semibold text-zinc-900 dark:text-zinc-100">How to read this</h2>
+      <section className="rounded-lg border p-5 border-zinc-800 bg-zinc-950 text-zinc-400">
+        <h2 className="mb-2 font-semibold text-zinc-100">How to read this</h2>
         <p>
           <strong>KL</strong> measures how far the abliterated model drifted from the original —
           lower is better. <strong>Refusals</strong> are counted on a harmful-prompt set by the

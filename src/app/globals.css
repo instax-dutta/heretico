@@ -1,8 +1,29 @@
 @import "tailwindcss";
 
+/**
+ * Dark only. The site reads metrics off a screen, so the palette is fixed
+ * rather than flipped: one surface ramp, one ink ramp, and three semantic
+ * accents that mean the same thing everywhere (verified = emerald,
+ * unverified = amber, Pareto/best = indigo).
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: dark;
+
+  --background: #09090b;
+  --foreground: #f4f4f5;
+
+  /* Ink ramp. 400 is the muted floor for body copy: 7.8:1 on the surface.
+     500 is 4.1:1 and fails, so it is reserved for large text and borders. */
+  --ink: #f4f4f5;
+  --ink-muted: #a1a1aa;
+  --ink-subtle: #71717a;
+  --ink-inverse: #09090b;
+
+  --surface: #09090b;
+  --surface-raised: #18181b;
+  --surface-sunken: #0f0f11;
+  --line: #27272a;
+  --line-strong: #3f3f46;
 }
 
 @theme inline {
@@ -12,15 +33,95 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  background: var(--surface);
 }
 
 body {
-  background: var(--background);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-feature-settings: "cv11", "ss01";
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Browser surfaces nobody draws but everybody sees. */
+::selection {
+  background: color-mix(in oklab, var(--foreground) 22%, transparent);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ink-muted);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* The caret is a control; leaving it at the OS default breaks the palette. */
+input,
+textarea,
+select {
+  caret-color: var(--ink);
+}
+
+/* Native <select> popups are rendered by the OS, not the page. Declaring the
+   scheme is the only way to stop a dark page opening a white dropdown. */
+select {
+  color-scheme: dark;
+}
+
+select option {
+  background: var(--surface-raised);
+  color: var(--ink);
+}
+
+/* Checkboxes and radios otherwise stay OS-default against the dark surface. */
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: #34d399;
+}
+
+input::placeholder {
+  color: var(--ink-muted);
+  opacity: 1;
+}
+
+/* Numerals must not reflow as they tick during a daily refresh. */
+table {
+  font-variant-numeric: tabular-nums;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border: 3px solid var(--surface);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ink-subtle);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

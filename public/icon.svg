@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Heretic Directory">
+  <!--
+    The site ranks one thing: how few refusals remain after ablation. These
+    three bars are that number falling, 100 -> 0, at the publisher's own
+    evaluation scale. The green floor is the whole point of the directory, so
+    it is the only thing in colour. Drawn on a 4px grid to stay crisp at 16px.
+  -->
+  <rect width="64" height="64" rx="14" fill="#09090b" />
+  <rect x="0.75" y="0.75" width="62.5" height="62.5" rx="13.25" fill="none" stroke="#3f3f46" stroke-width="1.5" />
+  <rect x="14" y="19" width="36" height="7" rx="3.5" fill="#52525b" />
+  <rect x="14" y="30" width="23" height="7" rx="3.5" fill="#a1a1aa" />
+  <rect x="14" y="41" width="8"  height="7" rx="3.5" fill="#34d399" />
+</svg>

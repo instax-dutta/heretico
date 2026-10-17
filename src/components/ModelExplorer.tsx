@@ -85,7 +85,7 @@ export function ModelExplorer({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid gap-2 rounded-lg border border-zinc-200 bg-white p-3 sm:grid-cols-2 lg:grid-cols-4 dark:border-zinc-800 dark:bg-zinc-950">
+      <div className="grid gap-2 rounded-lg border p-3 sm:grid-cols-2 lg:grid-cols-4 border-zinc-800 bg-zinc-950">
         <label className="flex flex-col gap-1 text-xs text-zinc-500 lg:col-span-2">
           Search model
           <input
@@ -96,7 +96,7 @@ export function ModelExplorer({
               setPage(1);
             }}
             placeholder="Qwen3-4B, gemma-3-12b-it, gpt-oss-20b…"
-            className="rounded border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+            className="rounded border px-2 py-1.5 border-zinc-700 bg-zinc-900 text-zinc-100"
           />
         </label>
         <label className="flex flex-col gap-1 text-xs text-zinc-500">
@@ -107,7 +107,7 @@ export function ModelExplorer({
               setFamily(event.target.value);
               setPage(1);
             }}
-            className="rounded border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+            className="rounded border px-2 py-1.5 border-zinc-700 bg-zinc-900 text-zinc-100"
           >
             <option value="">All families</option>
             {families.map((entry) => (
@@ -125,7 +125,7 @@ export function ModelExplorer({
               setSize(event.target.value);
               setPage(1);
             }}
-            className="rounded border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+            className="rounded border px-2 py-1.5 border-zinc-700 bg-zinc-900 text-zinc-100"
           >
             <option value="">Any size</option>
             {SIZE_CLASSES.filter((entry) => entry.key !== "unknown").map((entry) => (
@@ -135,7 +135,7 @@ export function ModelExplorer({
             ))}
           </select>
         </label>
-        <label className="flex items-center gap-2 text-xs text-zinc-600 dark:text-zinc-400">
+        <label className="flex items-center gap-2 text-zinc-400">
           <input
             type="checkbox"
             checked={rankedOnly}
@@ -154,7 +154,7 @@ export function ModelExplorer({
               setSort(event.target.value as SortKey);
               setPage(1);
             }}
-            className="rounded border border-zinc-300 bg-white px-2 py-1 dark:border-zinc-700 dark:bg-zinc-900"
+            className="rounded border px-2 py-1 border-zinc-700 bg-zinc-900"
           >
             <option value="score">Best score</option>
             <option value="name">Name</option>
@@ -170,10 +170,10 @@ export function ModelExplorer({
         a Heretic conversion.
       </p>
 
-      <div className="overflow-x-auto rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+      <div className="overflow-x-auto rounded-lg border border-zinc-800 bg-zinc-950">
         <table className="w-full min-w-[720px] border-collapse text-sm">
           <thead>
-            <tr className="border-b border-zinc-200 text-left text-xs uppercase tracking-wide text-zinc-500 dark:border-zinc-800">
+            <tr className="border-b text-left text-xs uppercase tracking-wide text-zinc-500 border-zinc-800">
               <th className="px-4 py-2 font-medium">Model</th>
               <th className="py-2 pr-3 font-medium">Family</th>
               <th className="py-2 pr-3 text-right font-medium">Params</th>
@@ -188,7 +188,7 @@ export function ModelExplorer({
             {visible.map((origin) => (
               <tr
                 key={origin.id}
-                className="border-b border-zinc-100 last:border-0 dark:border-zinc-900"
+                className="border-b last:border-0 border-zinc-900"
               >
                 <td className="max-w-[280px] px-4 py-2">
                   <Link href={originHref(origin.id)} className="font-medium hover:underline">
@@ -216,7 +216,7 @@ export function ModelExplorer({
                   {formatPercent(origin.bestRefusalRate, 0)}
                 </td>
                 <td className="py-2 pr-3 text-right tabular-nums">{origin.recipeCount}</td>
-                <td className="py-2 pr-3 text-right tabular-nums text-zinc-600 dark:text-zinc-400">
+                <td className="py-2 pr-3 tabular-nums text-zinc-400">
                   {formatCompact(origin.downloadsAllTime)}
                 </td>
               </tr>
@@ -239,7 +239,7 @@ export function ModelExplorer({
             type="button"
             disabled={current <= 1}
             onClick={() => setPage(current - 1)}
-            className="rounded border border-zinc-300 px-3 py-1 disabled:opacity-40 dark:border-zinc-700"
+            className="rounded border px-3 py-1 disabled:opacity-40 border-zinc-700"
           >
             Previous
           </button>
@@ -250,7 +250,7 @@ export function ModelExplorer({
             type="button"
             disabled={current >= pageCount}
             onClick={() => setPage(current + 1)}
-            className="rounded border border-zinc-300 px-3 py-1 disabled:opacity-40 dark:border-zinc-700"
+            className="rounded border px-3 py-1 disabled:opacity-40 border-zinc-700"
           >
             Next
           </button>

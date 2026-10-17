@@ -13,7 +13,8 @@
     "typecheck": "next typegen && tsc --noEmit",
     "crawl": "tsx scripts/crawl.ts",
     "snapshot": "tsx scripts/build-snapshot.ts && tsx scripts/build-llms-txt.ts",
-    "refresh": "npm run crawl && npm run snapshot"
+    "refresh": "npm run crawl && npm run snapshot",
+    "og": "next build && cp out/opengraph-image public/og.png"
   },
   "dependencies": {
     "next": "16.4.2",

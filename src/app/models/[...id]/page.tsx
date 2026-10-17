@@ -148,7 +148,7 @@ export default async function ModelPage({ params }: PageProps<"/models/[...id]">
             Original model on Hugging Face
           </a>
         </div>
-        <div className="mt-3 flex flex-wrap gap-2 text-xs text-zinc-600 dark:text-zinc-400">
+        <div className="mt-3 flex flex-wrap gap-2 text-zinc-400">
           <Badge>{formatParams(origin.paramsB, origin.paramsActiveB, origin.moe)}</Badge>
           <Badge>{origin.family}</Badge>
           <Badge>{allRepos.length} Heretic artifacts</Badge>
@@ -158,7 +158,7 @@ export default async function ModelPage({ params }: PageProps<"/models/[...id]">
       </div>
 
       {best && bestRepo ? (
-        <Card className="border-zinc-300 dark:border-zinc-700">
+        <Card className="border-zinc-700">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-2">
@@ -175,7 +175,7 @@ export default async function ModelPage({ params }: PageProps<"/models/[...id]">
               >
                 {best.bestRepoId}
               </a>
-              <div className="text-sm text-zinc-600 dark:text-zinc-400">
+              <div className="text-zinc-400">
                 by {best.author}
                 {best.hereticVersion ? ` · Heretic v${best.hereticVersion}` : ""} ·{" "}
                 {best.formats.map((format) => format.toUpperCase()).join(", ") || "weights"}
@@ -209,7 +209,7 @@ export default async function ModelPage({ params }: PageProps<"/models/[...id]">
               <summary className="cursor-pointer text-zinc-500">
                 Evidence from the model card
               </summary>
-              <pre className="mt-2 overflow-x-auto whitespace-pre-wrap rounded bg-zinc-100 p-2 font-mono text-[11px] text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+              <pre className="mt-2 overflow-x-auto whitespace-pre-wrap rounded p-2 font-mono bg-zinc-900 text-zinc-300">
                 {bestRepo.metrics.evidence}
               </pre>
             </details>
@@ -224,7 +224,7 @@ export default async function ModelPage({ params }: PageProps<"/models/[...id]">
         </Card>
       ) : (
         <Card>
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+          <p className="text-zinc-400">
             No Heretic conversion of this model has published KL and refusal numbers yet, so it
             cannot be ranked. The artifacts below are still listed with their provenance.
           </p>
@@ -238,7 +238,7 @@ export default async function ModelPage({ params }: PageProps<"/models/[...id]">
             Higher score is better. One row per ablation attempt; artifacts of the same attempt
             are grouped under it.
           </p>
-          <div className="overflow-hidden rounded-lg border border-zinc-200 bg-white px-4 dark:border-zinc-800 dark:bg-zinc-950">
+          <div className="overflow-hidden rounded-lg border px-4 border-zinc-800 bg-zinc-950">
             <RecipeTable rows={toRows(recipes, origin)} showOrigin={false} />
           </div>
         </section>
@@ -258,10 +258,10 @@ export default async function ModelPage({ params }: PageProps<"/models/[...id]">
             .
           </p>
         ) : null}
-        <div className="overflow-x-auto rounded-lg border border-zinc-200 bg-white px-4 dark:border-zinc-800 dark:bg-zinc-950">
+        <div className="overflow-x-auto rounded-lg border px-4 border-zinc-800 bg-zinc-950">
           <table className="w-full min-w-[720px] border-collapse text-sm">
             <thead>
-              <tr className="border-b border-zinc-200 text-left text-xs uppercase tracking-wide text-zinc-500 dark:border-zinc-800">
+              <tr className="border-b text-left text-xs uppercase tracking-wide text-zinc-500 border-zinc-800">
                 <th className="py-2 pr-3 font-medium">Repository</th>
                 <th className="py-2 pr-3 font-medium">Type</th>
                 <th className="py-2 pr-3 font-medium">Formats</th>
@@ -274,7 +274,7 @@ export default async function ModelPage({ params }: PageProps<"/models/[...id]">
               {repos.map((repo) => (
                 <tr
                   key={repo.id}
-                  className="border-b border-zinc-100 last:border-0 dark:border-zinc-900"
+                  className="border-b last:border-0 border-zinc-900"
                 >
                 <td className="max-w-[320px] py-2 pr-3">
                   {repo.metrics.confidence === "none" ? (

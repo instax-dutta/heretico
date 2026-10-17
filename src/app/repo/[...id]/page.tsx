@@ -136,7 +136,7 @@ export default async function RepoPage({ params }: PageProps<"/repo/[...id]">) {
           {repo.metrics.evidence ? (
             <details className="mt-3 text-xs">
               <summary className="cursor-pointer text-zinc-500">Matched snippet</summary>
-              <pre className="mt-2 overflow-x-auto whitespace-pre-wrap rounded bg-zinc-100 p-2 font-mono text-[11px] dark:bg-zinc-900">
+              <pre className="mt-2 overflow-x-auto whitespace-pre-wrap rounded p-2 font-mono text-[11px] bg-zinc-900">
                 {repo.metrics.evidence}
               </pre>
             </details>
@@ -189,10 +189,10 @@ export default async function RepoPage({ params }: PageProps<"/repo/[...id]">) {
           <p className="mb-2 text-xs text-zinc-500">
             Copied from the model card. These never affect the ranking.
           </p>
-          <div className="overflow-hidden rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+          <div className="overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950">
             <table className="w-full border-collapse text-sm">
               <thead>
-                <tr className="border-b border-zinc-200 text-left text-xs uppercase tracking-wide text-zinc-500 dark:border-zinc-800">
+                <tr className="border-b text-left text-xs uppercase tracking-wide text-zinc-500 border-zinc-800">
                   <th className="px-4 py-2 font-medium">Metric</th>
                   <th className="py-2 pr-3 text-right font-medium">This model</th>
                   <th className="py-2 pr-3 text-right font-medium">Original</th>
@@ -201,7 +201,7 @@ export default async function RepoPage({ params }: PageProps<"/repo/[...id]">) {
               </thead>
               <tbody>
                 {repo.benchmarks.map((benchmark) => (
-                  <tr key={benchmark.metric} className="border-b border-zinc-100 last:border-0 dark:border-zinc-900">
+                  <tr key={benchmark.metric} className="border-b last:border-0 border-zinc-900">
                     <td className="px-4 py-2">{benchmark.metric}</td>
                     <td className="py-2 pr-3 text-right tabular-nums">{benchmark.value}</td>
                     <td className="py-2 pr-3 text-right tabular-nums">{benchmark.baseValue ?? "—"}</td>

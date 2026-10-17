@@ -22,6 +22,9 @@ plus one JSON index for browser-side filtering.
 - `/repo/` generates a page only for artifacts that published metrics
   (`getMeasuredRepos`). `sitemap.ts` and the model artifact table must agree, or
   links 404. Model pages also emit JSON-LD for assistants.
+- **Dark only.** `color-scheme: dark` in `globals.css` and no `dark:` variant
+  anywhere: the light value is never written, so there is nothing to forget to
+  pair. Regenerate icons and the social card with `npm run og`.
 - Every generated path is **lowercase** (`pathSegments`). Netlify lowercases
   what it serves, so a mixed-case directory is reachable only via a 301 and its
   canonical points at a redirect. Lookups in `lib/dataset.ts` must fold case to

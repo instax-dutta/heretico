@@ -11,7 +11,7 @@ export function Card({
   className?: string;
 }) {
   return (
-    <div className={`rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950 ${className}`}>
+    <div className={`rounded-lg border border-zinc-800 bg-zinc-950 p-5 ${className}`}>
       {children}
     </div>
   );
@@ -37,10 +37,10 @@ export function Badge({
   title?: string;
 }) {
   const tones: Record<string, string> = {
-    neutral: "border-zinc-300 text-zinc-600 dark:border-zinc-700 dark:text-zinc-400",
-    good: "border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300",
-    warn: "border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300",
-    accent: "border-indigo-300 bg-indigo-50 text-indigo-800 dark:border-indigo-900 dark:bg-indigo-950 dark:text-indigo-300",
+    neutral: "border-zinc-700 text-zinc-400",
+    good: "border-emerald-900 bg-emerald-950 text-emerald-300",
+    warn: "border-amber-900 bg-amber-950 text-amber-300",
+    accent: "border-indigo-900 bg-indigo-950 text-indigo-300",
   };
   return (
     <span
@@ -86,7 +86,7 @@ export function Breadcrumbs({ items }: { items: { label: string; href?: string }
               {item.label}
             </Link>
           ) : (
-            <span className="text-zinc-700 dark:text-zinc-300">{item.label}</span>
+            <span className="text-zinc-300">{item.label}</span>
           )}
         </span>
       ))}

@@ -81,7 +81,7 @@ export function LeaderboardExplorer({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid gap-2 rounded-lg border border-zinc-200 bg-white p-3 sm:grid-cols-2 lg:grid-cols-4 dark:border-zinc-800 dark:bg-zinc-950">
+      <div className="grid gap-2 rounded-lg border p-3 sm:grid-cols-2 lg:grid-cols-4 border-zinc-800 bg-zinc-950">
         <label className="flex flex-col gap-1 text-xs text-zinc-500 lg:col-span-2">
           Search
           <input
@@ -89,7 +89,7 @@ export function LeaderboardExplorer({
             value={query.q}
             onChange={(event) => patch({ q: event.target.value })}
             placeholder="Model, owner or repository"
-            className="rounded border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+            className="rounded border px-2 py-1.5 border-zinc-700 bg-zinc-900 text-zinc-100"
           />
         </label>
 
@@ -98,7 +98,7 @@ export function LeaderboardExplorer({
           <select
             value={query.family}
             onChange={(event) => patch({ family: event.target.value })}
-            className="rounded border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+            className="rounded border px-2 py-1.5 border-zinc-700 bg-zinc-900 text-zinc-100"
           >
             <option value="">All families</option>
             {families.map((family) => (
@@ -114,7 +114,7 @@ export function LeaderboardExplorer({
           <select
             value={query.size}
             onChange={(event) => patch({ size: event.target.value })}
-            className="rounded border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+            className="rounded border px-2 py-1.5 border-zinc-700 bg-zinc-900 text-zinc-100"
           >
             <option value="">Any size</option>
             {SIZE_CLASSES.filter((size) => size.key !== "unknown").map((size) => (
@@ -130,7 +130,7 @@ export function LeaderboardExplorer({
           <select
             value={query.format}
             onChange={(event) => patch({ format: event.target.value })}
-            className="rounded border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+            className="rounded border px-2 py-1.5 border-zinc-700 bg-zinc-900 text-zinc-100"
           >
             <option value="">Any format</option>
             {FORMATS.map((format) => (
@@ -146,7 +146,7 @@ export function LeaderboardExplorer({
           <select
             value={query.kind}
             onChange={(event) => patch({ kind: event.target.value })}
-            className="rounded border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+            className="rounded border px-2 py-1.5 border-zinc-700 bg-zinc-900 text-zinc-100"
           >
             <option value="">Any type</option>
             {KINDS.map((kind) => (
@@ -162,7 +162,7 @@ export function LeaderboardExplorer({
           <select
             value={query.version}
             onChange={(event) => patch({ version: event.target.value })}
-            className="rounded border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+            className="rounded border px-2 py-1.5 border-zinc-700 bg-zinc-900 text-zinc-100"
           >
             <option value="">Any version</option>
             {versions.map((version) => (
@@ -181,7 +181,7 @@ export function LeaderboardExplorer({
             step={100}
             value={query.minDownloads}
             onChange={(event) => patch({ minDownloads: Number(event.target.value) || 0 })}
-            className="rounded border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+            className="rounded border px-2 py-1.5 border-zinc-700 bg-zinc-900 text-zinc-100"
           />
         </label>
 
@@ -198,7 +198,7 @@ export function LeaderboardExplorer({
                     : "desc";
                 update({ ...query, sort, dir, page: 1 });
               }}
-              className="w-full rounded border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+              className="w-full rounded border px-2 py-1.5 border-zinc-700 bg-zinc-900 text-zinc-100"
             >
               {SORTS.map((sort) => (
                 <option key={sort.value} value={sort.value}>
@@ -209,7 +209,7 @@ export function LeaderboardExplorer({
             <button
               type="button"
               onClick={() => patch({ dir: query.dir === "asc" ? "desc" : "asc" })}
-              className="rounded border border-zinc-300 px-2 py-1.5 text-sm dark:border-zinc-700"
+              className="rounded border px-2 py-1.5 text-sm border-zinc-700"
               title="Toggle sort direction"
             >
               {query.dir === "asc" ? "↑" : "↓"}
@@ -217,18 +217,20 @@ export function LeaderboardExplorer({
           </div>
         </div>
 
-        <div className="flex items-center gap-4 text-xs text-zinc-600 lg:col-span-2 dark:text-zinc-400">
-          <label className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-zinc-400 lg:col-span-2">
+          <label className="flex cursor-pointer items-center gap-2 whitespace-nowrap">
             <input
               type="checkbox"
+              className="accent-emerald-400"
               checked={query.hasBenchmarks}
               onChange={(event) => patch({ hasBenchmarks: event.target.checked })}
             />
-            Has published benchmarks
+            Has benchmarks
           </label>
-          <label className="flex items-center gap-2">
+          <label className="flex cursor-pointer items-center gap-2 whitespace-nowrap">
             <input
               type="checkbox"
+              className="accent-emerald-400"
               checked={!query.rankedOnly}
               onChange={(event) => patch({ rankedOnly: !event.target.checked })}
             />
@@ -236,10 +238,10 @@ export function LeaderboardExplorer({
           </label>
           <button
             type="button"
-            className="ml-auto underline"
+            className="ml-auto rounded text-zinc-500 underline-offset-4 transition-colors hover:text-zinc-200 hover:underline"
             onClick={() => update({ ...DEFAULT_QUERY })}
           >
-            Reset
+            Reset filters
           </button>
         </div>
       </div>
@@ -255,7 +257,7 @@ export function LeaderboardExplorer({
           <select
             value={query.perPage}
             onChange={(event) => patch({ perPage: Number(event.target.value) })}
-            className="rounded border border-zinc-300 bg-white px-1 py-0.5 dark:border-zinc-700 dark:bg-zinc-900"
+            className="rounded border px-1 py-0.5 border-zinc-700 bg-zinc-900"
           >
             {[25, 50, 100, 200].map((size) => (
               <option key={size} value={size}>
@@ -266,7 +268,7 @@ export function LeaderboardExplorer({
         </label>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-zinc-200 bg-white px-4 dark:border-zinc-800 dark:bg-zinc-950">
+      <div className="overflow-hidden rounded-lg border px-4 border-zinc-800 bg-zinc-950">
         <RecipeTable rows={result.rows} />
       </div>
 
@@ -275,7 +277,7 @@ export function LeaderboardExplorer({
           type="button"
           disabled={result.page <= 1}
           onClick={() => patch({ page: result.page - 1 })}
-          className="rounded border border-zinc-300 px-3 py-1 disabled:opacity-40 dark:border-zinc-700"
+          className="rounded border px-3 py-1 disabled:opacity-40 border-zinc-700"
         >
           Previous
         </button>
@@ -286,7 +288,7 @@ export function LeaderboardExplorer({
           type="button"
           disabled={result.page >= result.pageCount}
           onClick={() => patch({ page: result.page + 1 })}
-          className="rounded border border-zinc-300 px-3 py-1 disabled:opacity-40 dark:border-zinc-700"
+          className="rounded border px-3 py-1 disabled:opacity-40 border-zinc-700"
         >
           Next
         </button>

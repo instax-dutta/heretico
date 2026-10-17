@@ -17,7 +17,7 @@ export default function MethodologyPage() {
     <article className="flex max-w-3xl flex-col gap-8 text-sm leading-6">
       <header className="flex flex-col gap-2">
         <h1 className="text-2xl font-semibold tracking-tight">Methodology</h1>
-        <p className="text-zinc-600 dark:text-zinc-400">
+        <p className="text-zinc-400">
           The directory answers one question: for a given base model, which Heretic conversion is
           the best trade-off between removing refusals and leaving the model unchanged? Everything
           below exists to answer that honestly.
@@ -62,7 +62,7 @@ score     = 100 × (${WEIGHTS.refusals} × (1 − rate) + ${WEIGHTS.kl} × reten
             refresh dates rather than only within a cohort.
           </li>
         </ul>
-        <p className="text-zinc-600 dark:text-zinc-400">
+        <p className="text-zinc-400">
           A perfect untouched model scores 100 (zero refusals is impossible in practice). A model
           with 3 refusals in 100 and KL 0.10 scores about 93.9. A model with no refusals but KL 2.0
           scores about 66.7: refusing nothing does not compensate for wrecking the weights.
@@ -115,7 +115,7 @@ score     = 100 × (${WEIGHTS.refusals} × (1 − rate) + ${WEIGHTS.kl} × reten
             quantization loss or a trial log. These artifacts are listed but not scored.
           </li>
         </ul>
-        <p className="text-zinc-600 dark:text-zinc-400">
+        <p className="text-zinc-400">
           Published benchmarks (MMLU, GSM8K, GPQA…) are copied only when a table explicitly
           attributes a column to the abliterated model. They are shown as evidence and never
           affect the score, because coverage is too sparse and the metrics too heterogeneous to
@@ -151,7 +151,7 @@ score     = 100 × (${WEIGHTS.refusals} × (1 − rate) + ${WEIGHTS.kl} × reten
             incremental: unchanged READMEs (by repository SHA) are not fetched again.
           </li>
         </ol>
-        <p className="text-zinc-600 dark:text-zinc-400">
+        <p className="text-zinc-400">
           Snapshot: {formatCompact(snapshot.totals.repos)} repositories discovered,{" "}
           {formatCompact(snapshot.totals.verifiedRepos)} verified,{" "}
           {formatCompact(snapshot.totals.origins)} canonical models,{" "}
@@ -188,7 +188,7 @@ score     = 100 × (${WEIGHTS.refusals} × (1 − rate) + ${WEIGHTS.kl} × reten
         </ul>
       </section>
 
-      <section className="flex flex-col gap-2 rounded-lg border border-zinc-200 bg-white p-4 text-xs dark:border-zinc-800 dark:bg-zinc-950">
+      <section className="flex flex-col gap-2 rounded-lg border p-4 text-xs border-zinc-800 bg-zinc-950">
         <h2 className="text-sm font-semibold">Independence</h2>
         <p className="text-zinc-500">
           This is an independent index. It is not operated or endorsed by the Heretic maintainers.

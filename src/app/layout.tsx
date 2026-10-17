@@ -16,12 +16,37 @@ export const metadata: Metadata = {
   },
   description:
     "Find the best Heretic (abliterated) version of any open model. Ranked by KL divergence and refusal rate, filtered by family, size and format.",
+  applicationName: "Heretic Directory",
+  // The generated file is emitted at a hashed path, which the metadata API
+  // renders with a query string. A static host has no such file, so the shared
+  // asset is declared by its stable path instead.
   openGraph: {
     type: "website",
     siteName: "Heretic Directory",
     url: siteUrl,
+    title: "Every Heretic model, ranked",
+    description:
+      "By how little the weights drifted, and how few refusals remain. Metrics are self-reported by each publisher and never re-measured.",
+    images: [
+      {
+        url: "/og.png",
+        width: 1200,
+        height: 630,
+        alt: "Heretic Directory: every Heretic model on Hugging Face, ranked by KL divergence and refusal rate.",
+      },
+    ],
   },
-  twitter: { card: "summary_large_image" },
+  twitter: {
+    card: "summary_large_image",
+    title: "Every Heretic model, ranked",
+    description:
+      "By how little the weights drifted, and how few refusals remain.",
+    images: ["/og.png"],
+  },
+  icons: {
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "192x192" }],
+  },
   robots: { index: true, follow: true },
 };
 
@@ -36,17 +61,24 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} h-full`}
     >
-      <body className="flex min-h-full flex-col bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
-        <header className="border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
-          <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-            <Link href="/" className="text-sm font-semibold tracking-tight">
-              Heretic<span className="text-zinc-400"> Directory</span>
+      <body className="flex min-h-full flex-col bg-zinc-950 text-zinc-100">
+        <header className="sticky top-0 z-20 border-b border-zinc-800 bg-zinc-950/80 backdrop-blur-md">
+          <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-3 px-4 py-3">
+            <Link
+              href="/"
+              className="text-sm font-semibold tracking-tight text-zinc-100 transition-colors hover:text-white"
+            >
+              Heretic<span className="text-zinc-500"> Directory</span>
             </Link>
-            <nav className="flex flex-wrap items-center gap-4 text-sm text-zinc-600 dark:text-zinc-400">
+            <nav className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm">
               {NAV.map((item) => (
-                <Link key={item.href} href={item.href} className="hover:text-zinc-900 dark:hover:text-zinc-100">
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="rounded text-zinc-400 underline-offset-4 transition-colors hover:text-zinc-100 hover:underline"
+                >
                   {item.label}
                 </Link>
               ))}
@@ -54,9 +86,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           </div>
         </header>
 
-        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">{children}</main>
+        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10">{children}</main>
 
-        <footer className="border-t border-zinc-200 bg-white px-4 py-6 text-xs text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950">
+        <footer className="border-t border-zinc-800 px-4 py-8 text-xs leading-relaxed text-zinc-500">
           <div className="mx-auto flex max-w-6xl flex-col gap-2">
             <p>
               An independent, unaffiliated index of models produced with{" "}

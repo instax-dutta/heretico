@@ -20,7 +20,7 @@ export default function FamiliesPage() {
     <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-2">
         <h1 className="text-2xl font-semibold tracking-tight">Families</h1>
-        <p className="max-w-3xl text-sm text-zinc-600 dark:text-zinc-400">
+        <p className="max-w-3xl text-zinc-400">
           A family groups generations of the same model line. Pick one to see every model in it
           with its best-ranked Heretic conversion.
         </p>
@@ -31,7 +31,7 @@ export default function FamiliesPage() {
           <Link
             key={family.slug}
             href={familyHref(family.slug)}
-            className="rounded-lg border border-zinc-200 bg-white p-4 hover:border-zinc-400 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:border-zinc-600"
+            className="rounded-lg border p-4 border-zinc-800 bg-zinc-950 hover:border-zinc-600"
           >
             <div className="flex items-baseline justify-between gap-2">
               <span className="font-medium">{family.label}</span>

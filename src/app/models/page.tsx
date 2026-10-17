@@ -19,7 +19,7 @@ export default function ModelsPage() {
     <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-2">
         <h1 className="text-2xl font-semibold tracking-tight">Models</h1>
-        <p className="max-w-3xl text-sm text-zinc-600 dark:text-zinc-400">
+        <p className="max-w-3xl text-zinc-400">
           Search for the model you already run. Every Heretic conversion, GGUF quant and
           derivative that descends from it is grouped under the same canonical model.
         </p>

@@ -29,7 +29,7 @@ export function RecipeTable({
     <div className="overflow-x-auto">
       <table className="w-full min-w-[720px] border-collapse text-sm">
         <thead>
-          <tr className="border-b border-zinc-200 text-left text-xs uppercase tracking-wide text-zinc-500 dark:border-zinc-800">
+          <tr className="border-b text-left text-xs uppercase tracking-wide text-zinc-500 border-zinc-800">
             {showRank ? <th className="w-12 py-2 pr-2 font-medium">#</th> : null}
             {showOrigin ? <th className="py-2 pr-3 font-medium">Model</th> : null}
             <th className="py-2 pr-3 font-medium">Author</th>
@@ -49,7 +49,7 @@ export function RecipeTable({
             return (
               <tr
                 key={recipe.id}
-                className="border-b border-zinc-100 align-top last:border-0 dark:border-zinc-900"
+                className="border-b align-top last:border-0 border-zinc-900"
               >
                 {showRank ? (
                   <td className="py-2 pr-2 tabular-nums text-zinc-500">
@@ -110,7 +110,7 @@ export function RecipeTable({
                     ))}
                   </div>
                 </td>
-                <td className="py-2 text-right tabular-nums text-zinc-600 dark:text-zinc-400">
+                <td className="py-2 tabular-nums text-zinc-400">
                   {formatCompact(recipe.downloadsAllTime)}
                 </td>
               </tr>
