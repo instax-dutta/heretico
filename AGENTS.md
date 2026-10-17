@@ -94,12 +94,22 @@ ablation recipes, and ranks them by KL divergence and refusal rate.
 - Never invent a metric. If a model card does not publish KL and refusals, the
   artifact is unranked and marked as such.
 - `data/snapshot.json` is the single source of truth for the site. Do not read
-  Hugging Face at request time.
+  Hugging Face at request time. `data/raw.json` and `data/cache/` are local crawl
+  artifacts and stay out of git.
 - Pure logic lives in `src/lib` and is unit-tested before use in pages.
 - Client components may not import `src/lib/dataset.ts` (build-time fs access).
 - Keep the site static-exportable: no route handlers, no server actions, no
   `searchParams` in server pages.
 - `npm test`, `npx tsc --noEmit`, `npm run build` must pass before a commit.
+
+### Documentation Map
+
+- `README.md` — what the directory is, how the pipeline works, commands, routes,
+  scoring, verification, deploy and caveats
+- `PLAN.md` — design record: data model, route table, depth tree
+- `GATES.md` — acceptance gates with their measured evidence
+- `/methodology/` — scoring, confidence and provenance for site visitors
+- `AGENTS.md` tree — per-directory contracts, enforced by `scripts/verify/dox.mjs`
 
 ### User Preferences
 

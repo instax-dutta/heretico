@@ -40,8 +40,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# crawl cache (raw cards, never committed)
+# crawl artifacts (raw cards and the raw crawl dump, never committed)
 /data/cache/
+/data/raw.json
 /.cache/
 
 # unlazy local state

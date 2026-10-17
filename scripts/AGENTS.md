@@ -8,11 +8,14 @@ Offline data pipeline and the runnable oracles behind `GATES.md`.
 
 - `crawl.ts` — discovery + README enrichment into `data/raw.json`
 - `build-snapshot.ts` — `data/raw.json` → `data/snapshot.json`
-- `sync-public.ts` — copies the snapshot to `public/data/` before dev/build
+- `sync-public.ts` — writes `public/data/index.json` from the snapshot before
+  dev/build; the browser copy keeps only `schemaVersion`, `updatedAt`, `totals`,
+  `origins`, `recipes` and `families`
 - `lib/hf.ts` — Hub REST client (pagination, retries, timeouts, expansions)
-- `lib/incremental.ts` — sha-keyed cache decision (unit-tested)
+- `lib/incremental.ts` — sha + `PARSER_VERSION` keyed cache decision (unit-tested)
 - `lib/pool.ts` — bounded concurrency
-- `verify/*.mjs` — gate oracles
+- `verify/*.mjs` — gate oracles: `static`, `suite`, `snapshot`, `app-smoke`,
+  `seo`, `automation`, `dox`, sharing helpers in `verify/util.mjs`
 
 ## Local Contracts
 
@@ -24,7 +27,10 @@ Offline data pipeline and the runnable oracles behind `GATES.md`.
 - The crawler writes atomically (`.tmp` + rename) and is resumable via
   `data/cache/cards/*.json`.
 - `data/raw.json` is an intermediate and is gitignored; only
-  `data/snapshot.json` is published.
+  `data/snapshot.json` is published. A fresh clone therefore needs
+  `npm run refresh` before `npm run snapshot` can succeed.
+- `HF_TOKEN` is optional but raises Hub rate limits; the refresh workflow passes
+  it from repository secrets.
 - Verification scripts print a success-only marker and exit non-zero on failure.
 
 ## Work Guidance

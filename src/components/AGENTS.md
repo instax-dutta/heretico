@@ -17,7 +17,8 @@ model directory) that filter the snapshot in the browser.
 - Client components start with `"use client"` and must not import
   `lib/dataset.ts` (Node fs).
 - They receive prerendered data as props so the first paint has real content,
-  then load `/data/snapshot.json` for the full index.
+  then fetch `/data/index.json` (written by `scripts/sync-public.ts`) and replace
+  it with the full result set. A failed fetch keeps the prerendered page.
 - URL state is written with `history.replaceState`; do not use `useSearchParams`
   (it forces a Suspense boundary that static export does not need).
 - Components never compute scores themselves; use `lib/scoring` and `lib/query`.

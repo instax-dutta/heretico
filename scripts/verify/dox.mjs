@@ -40,5 +40,16 @@ assert(lib.includes("ingest/AGENTS.md"), "lib index missing ingest child");
 const app = readFileSync("src/app/AGENTS.md", "utf8");
 assert(/output: "export"/.test(app), "app doc does not record the static-export contract");
 
-console.log(`DOX tree: ${REQUIRED.length} documents checked.`);
+// The README is the front door for humans; keep it pointing at real commands.
+const readme = readFileSync("README.md", "utf8");
+for (const needle of [
+  "npm run refresh",
+  "node scripts/verify/snapshot.mjs",
+  "netlify.toml",
+  "## Caveats",
+]) {
+  assert(readme.includes(needle), `README.md is missing "${needle}"`);
+}
+
+console.log(`DOX tree: ${REQUIRED.length + 1} documents checked.`);
 console.log("DOX VERIFIED");

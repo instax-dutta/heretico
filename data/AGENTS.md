@@ -7,8 +7,11 @@ Committed snapshot and local crawl caches.
 ## Ownership
 
 - `snapshot.json` — **committed**, the single source of truth for every page
-- `raw.json` — gitignored intermediate produced by `npm run crawl`
-- `cache/` — gitignored per-repo card parses keyed by repository SHA
+- `raw.json` — gitignored intermediate produced by `npm run crawl`; local only
+- `cache/cards/<owner>__<name>.json` — gitignored per-repo entries
+  `{ sha, parserVersion, markdown, card }`. Unchanged sha + current
+  `PARSER_VERSION` reuses the parse; a bumped parser version re-parses cached
+  markdown without a request; a changed sha refetches.
 
 ## Local Contracts
 

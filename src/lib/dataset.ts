@@ -2,8 +2,8 @@
  * Snapshot access for server components.
  *
  * Everything is prerendered at build time, so reading the committed snapshot
- * from disk is enough. Client components fetch `/data/snapshot.json` instead.
- * Keep this module out of client bundles.
+ * from disk is enough. Client components fetch `/data/index.json` (written by
+ * `scripts/sync-public.ts`) instead. Keep this module out of client bundles.
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
