@@ -62,7 +62,7 @@ export async function hfFetch(url: string, options: RequestOptions = {}): Promis
   const headers: Record<string, string> = { "User-Agent": "heretic-directory-crawler" };
   if (options.token) headers.Authorization = `Bearer ${options.token}`;
 
-  let lastError: unknown;
+  let lastError: unknown = new Error(`Failed to fetch ${url}`);
   for (let attempt = 0; attempt < retries; attempt += 1) {
     try {
       const response = await fetch(url, {
@@ -76,20 +76,23 @@ export async function hfFetch(url: string, options: RequestOptions = {}): Promis
         return response;
       }
       if (response.status === 429 || response.status >= 500) {
+        lastError = new Error(`HF ${response.status} for ${url}`);
+        if (attempt === retries - 1) break;
         options.onRetry?.(url, attempt + 1, response.status);
         const retryAfter = Number(response.headers.get("retry-after") ?? "0");
-        await sleep(retryAfter > 0 ? retryAfter * 1000 : 1000 * 3 ** attempt);
+        await sleep(Math.min(retryAfter > 0 ? retryAfter * 1000 : 1000 * 3 ** attempt, 30_000));
         continue;
       }
       if (!response.ok) throw new Error(`HF ${response.status} for ${url}`);
       return response;
     } catch (error) {
       lastError = error;
+      if (attempt === retries - 1) break;
       options.onRetry?.(url, attempt + 1, 0);
       await sleep(1000 * 2 ** attempt);
     }
   }
-  throw lastError instanceof Error ? lastError : new Error(`Failed to fetch ${url}`);
+  throw lastError;
 }
 
 function expandQuery(expands: string[]): string {
@@ -197,8 +200,6 @@ export function toRawRepo(model: HFRawModel) {
     license: typeof cardData.license === "string" ? cardData.license : null,
   };
 }
-
-export type RawRepoLike = ReturnType<typeof toRawRepo>;
 
 /** README text, trying the two common casings. */
 export async function fetchReadme(id: string, options: RequestOptions = {}): Promise<string | null> {

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { RecipeTable } from "@/components/RecipeTable";
-import { Badge, Breadcrumbs, Card, ScorePill } from "@/components/ui";
+import { Badge, Breadcrumbs, Card, ScorePill, VerificationBadge } from "@/components/ui";
 import {
   getFamily,
   getOrigin,
@@ -65,6 +65,39 @@ function confLabel(confidence: RepoRecord["metrics"]["confidence"]): string {
   }
 }
 
+/**
+ * The machine-readable answer to "which Heretic version of this model should I
+ * use". Assistants cite this instead of scraping the prose, so the score, the
+ * two source metrics and their provenance travel together.
+ */
+function datasetLd(origin: Origin, best: Recipe | null): string {
+  const site = process.env.NEXT_PUBLIC_SITE_URL ?? "https://heretico.sdad.pro";
+  return JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "Dataset",
+    name: `Heretic conversions of ${origin.id}`,
+    description: `Abliterated (Heretic) versions of ${origin.id}, ranked by KL divergence from the original model and remaining refusal rate. Metrics are self-reported by each publisher and are never re-measured.`,
+    url: `${site}/models/${origin.id}/`,
+    creator: { "@type": "Organization", name: "Heretic Directory", url: site },
+    isAccessibleForFree: true,
+    ...(best
+      ? {
+          variableMeasured: [
+            { "@type": "PropertyValue", name: "score", value: best.score, maxValue: 100 },
+            { "@type": "PropertyValue", name: "klDivergence", value: best.kl },
+            { "@type": "PropertyValue", name: "refusals", value: best.refusals },
+            { "@type": "PropertyValue", name: "refusalTotal", value: best.refusalTotal },
+          ],
+          distribution: {
+            "@type": "DataDownload",
+            encodingFormat: "text/html",
+            contentUrl: huggingFaceUrl(best.bestRepoId),
+          },
+        }
+      : {}),
+  });
+}
+
 export default async function ModelPage({ params }: PageProps<"/models/[...id]">) {
   const { id } = await params;
   const originId = id.join("/");
@@ -72,14 +105,19 @@ export default async function ModelPage({ params }: PageProps<"/models/[...id]">
   if (!origin) notFound();
 
   const recipes = getRecipesForOrigin(originId);
-  const repos = getReposForOrigin(originId);
+  const allRepos = getReposForOrigin(originId);
+  // One origin can hold 300+ uploads. The full set stays in the snapshot and in
+  // /data/index.json; the table shows the most used, so the page stays readable.
+  const ARTIFACT_LIMIT = 50;
+  const repos = allRepos.slice(0, ARTIFACT_LIMIT);
   const best = recipes.find((recipe) => recipe.bestPick) ?? null;
-  const bestRepo = best ? repos.find((repo) => repo.id === best.bestRepoId) : null;
+  const bestRepo = best ? allRepos.find((repo) => repo.id === best.bestRepoId) : null;
   const family = getFamily(origin.familySlug);
-  const unmeasured = repos.filter((repo) => repo.metrics.confidence === "none");
+  const unmeasured = allRepos.filter((repo) => repo.metrics.confidence === "none");
 
   return (
     <div className="flex flex-col gap-8">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: datasetLd(origin, best) }} />
       <div>
         <Breadcrumbs
           items={[
@@ -105,7 +143,7 @@ export default async function ModelPage({ params }: PageProps<"/models/[...id]">
         <div className="mt-3 flex flex-wrap gap-2 text-xs text-zinc-600 dark:text-zinc-400">
           <Badge>{formatParams(origin.paramsB, origin.paramsActiveB, origin.moe)}</Badge>
           <Badge>{origin.family}</Badge>
-          <Badge>{repos.length} Heretic artifacts</Badge>
+          <Badge>{allRepos.length} Heretic artifacts</Badge>
           <Badge>{recipes.length} measured conversions</Badge>
           <Badge>{formatCompact(origin.downloadsAllTime)} downloads</Badge>
         </div>
@@ -119,6 +157,7 @@ export default async function ModelPage({ params }: PageProps<"/models/[...id]">
                 <span className="text-xs uppercase tracking-wide text-zinc-500">Best version</span>
                 <ScorePill score={best.score} />
                 {best.pareto ? <Badge tone="accent">Pareto</Badge> : null}
+                <VerificationBadge verification={best.verification} />
               </div>
               <a
                 className="text-lg font-semibold hover:underline"
@@ -199,8 +238,18 @@ export default async function ModelPage({ params }: PageProps<"/models/[...id]">
 
       <section>
         <h2 className="mb-2 text-lg font-semibold tracking-tight">
-          All artifacts ({repos.length})
+          All artifacts ({allRepos.length})
         </h2>
+        {allRepos.length > repos.length ? (
+          <p className="mb-2 text-xs text-zinc-500">
+            Showing the {repos.length} most downloaded of {allRepos.length}. Every artifact is
+            listed in{" "}
+            <a className="underline" href="/data/index.json">
+              the dataset
+            </a>
+            .
+          </p>
+        ) : null}
         <div className="overflow-x-auto rounded-lg border border-zinc-200 bg-white px-4 dark:border-zinc-800 dark:bg-zinc-950">
           <table className="w-full min-w-[720px] border-collapse text-sm">
             <thead>
@@ -219,12 +268,25 @@ export default async function ModelPage({ params }: PageProps<"/models/[...id]">
                   key={repo.id}
                   className="border-b border-zinc-100 last:border-0 dark:border-zinc-900"
                 >
-                  <td className="max-w-[320px] py-2 pr-3">
+                <td className="max-w-[320px] py-2 pr-3">
+                  {repo.metrics.confidence === "none" ? (
+                    // No /repo/ page is generated for an artifact that published
+                    // no numbers, so send these straight to the Hub.
+                    <a
+                      className="hover:underline"
+                      href={huggingFaceUrl(repo.id)}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      {repo.id.split("/").pop()}
+                    </a>
+                  ) : (
                     <Link href={repoHref(repo.id)} className="hover:underline">
                       {repo.id.split("/").pop()}
                     </Link>
-                    <div className="text-xs text-zinc-500">{repo.author}</div>
-                  </td>
+                  )}
+                  <div className="text-xs text-zinc-500">{repo.author}</div>
+                </td>
                   <td className="py-2 pr-3">{repo.kind}</td>
                   <td className="py-2 pr-3">
                     <div className="flex flex-wrap gap-1">

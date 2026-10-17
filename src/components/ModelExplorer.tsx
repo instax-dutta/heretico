@@ -17,6 +17,8 @@ import { Badge, ScorePill } from "./ui";
 
 type SortKey = "score" | "name" | "params" | "downloads";
 
+const PER_PAGE = 50;
+
 export function ModelExplorer({
   initialOrigins,
   families,
@@ -32,6 +34,7 @@ export function ModelExplorer({
   const [size, setSize] = useState("");
   const [rankedOnly, setRankedOnly] = useState(false);
   const [sort, setSort] = useState<SortKey>("score");
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -73,6 +76,13 @@ export function ModelExplorer({
     });
   }, [source, q, family, size, rankedOnly, sort]);
 
+  // One table row is ~8 elements, so rendering every origin at once costs
+  // thousands of DOM nodes on the slowest connection. Page it like the
+  // leaderboard does.
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
+  const current = Math.min(page, pageCount);
+  const visible = filtered.slice((current - 1) * PER_PAGE, current * PER_PAGE);
+
   return (
     <div className="flex flex-col gap-4">
       <div className="grid gap-2 rounded-lg border border-zinc-200 bg-white p-3 sm:grid-cols-2 lg:grid-cols-4 dark:border-zinc-800 dark:bg-zinc-950">
@@ -81,7 +91,10 @@ export function ModelExplorer({
           <input
             type="search"
             value={q}
-            onChange={(event) => setQ(event.target.value)}
+            onChange={(event) => {
+              setQ(event.target.value);
+              setPage(1);
+            }}
             placeholder="Qwen3-4B, gemma-3-12b-it, gpt-oss-20b…"
             className="rounded border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
           />
@@ -90,7 +103,10 @@ export function ModelExplorer({
           Family
           <select
             value={family}
-            onChange={(event) => setFamily(event.target.value)}
+            onChange={(event) => {
+              setFamily(event.target.value);
+              setPage(1);
+            }}
             className="rounded border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
           >
             <option value="">All families</option>
@@ -105,7 +121,10 @@ export function ModelExplorer({
           Parameters
           <select
             value={size}
-            onChange={(event) => setSize(event.target.value)}
+            onChange={(event) => {
+              setSize(event.target.value);
+              setPage(1);
+            }}
             className="rounded border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
           >
             <option value="">Any size</option>
@@ -120,7 +139,10 @@ export function ModelExplorer({
           <input
             type="checkbox"
             checked={rankedOnly}
-            onChange={(event) => setRankedOnly(event.target.checked)}
+            onChange={(event) => {
+              setRankedOnly(event.target.checked);
+              setPage(1);
+            }}
           />
           Measured versions only
         </label>
@@ -128,7 +150,10 @@ export function ModelExplorer({
           Sort
           <select
             value={sort}
-            onChange={(event) => setSort(event.target.value as SortKey)}
+            onChange={(event) => {
+              setSort(event.target.value as SortKey);
+              setPage(1);
+            }}
             className="rounded border border-zinc-300 bg-white px-2 py-1 dark:border-zinc-700 dark:bg-zinc-900"
           >
             <option value="score">Best score</option>
@@ -160,7 +185,7 @@ export function ModelExplorer({
             </tr>
           </thead>
           <tbody>
-            {filtered.map((origin) => (
+            {visible.map((origin) => (
               <tr
                 key={origin.id}
                 className="border-b border-zinc-100 last:border-0 dark:border-zinc-900"
@@ -196,7 +221,7 @@ export function ModelExplorer({
                 </td>
               </tr>
             ))}
-            {filtered.length === 0 ? (
+            {visible.length === 0 ? (
               <tr>
                 <td colSpan={8} className="px-4 py-10 text-center text-zinc-500">
                   No model matches that search yet. Try the base model name without suffixes
@@ -207,6 +232,30 @@ export function ModelExplorer({
           </tbody>
         </table>
       </div>
+
+      {pageCount > 1 ? (
+        <div className="flex items-center justify-between text-sm">
+          <button
+            type="button"
+            disabled={current <= 1}
+            onClick={() => setPage(current - 1)}
+            className="rounded border border-zinc-300 px-3 py-1 disabled:opacity-40 dark:border-zinc-700"
+          >
+            Previous
+          </button>
+          <span className="text-xs text-zinc-500">
+            Page {current} of {pageCount}
+          </span>
+          <button
+            type="button"
+            disabled={current >= pageCount}
+            onClick={() => setPage(current + 1)}
+            className="rounded border border-zinc-300 px-3 py-1 disabled:opacity-40 dark:border-zinc-700"
+          >
+            Next
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import type { Classification, RepoInput } from "./classify";
 import { bestPickId, paretoIds, scoreOf, type ScoreInput } from "../scoring";
-import type { Metrics, Recipe } from "../types";
+import type { Metrics, Recipe, Verification } from "../types";
 
 export interface RecipeInput extends RepoInput {
   classification: Classification;
@@ -30,6 +30,26 @@ function noMetrics(): Metrics {
 
 function hasNumbers(metrics: Metrics): boolean {
   return metrics.kl !== null && metrics.refusals !== null && metrics.refusalTotal !== null;
+}
+
+/**
+ * KL below this is not a measurement: ablation moves weights, so the reported
+ * divergence cannot round to nothing. Cards claiming it are quoting a number
+ * they did not produce, or produced a no-op.
+ */
+export const KL_FLOOR = 1e-4;
+
+/** Does the evidence repo ship real weights, and is its KL physically possible? */
+export function verificationFor(evidence: RecipeInput, kl: number | null): Verification {
+  const shipsWeights = (evidence.repo.safetensorsTotal ?? 0) > 0;
+  const plausible = kl !== null && kl >= KL_FLOOR;
+  return shipsWeights && plausible ? "verified" : "unverified";
+}
+
+/** Merged recipes carry the strongest claim of their parts. */
+export function bestVerification(a: Verification, b: Verification): Verification {
+  if (a === "publisher" || b === "publisher") return "publisher";
+  return a === "verified" || b === "verified" ? "verified" : "unverified";
 }
 
 /** Small deterministic id, stable across refreshes for the same recipe. */
@@ -69,6 +89,13 @@ export function buildRecipes(inputs: RecipeInput[]): RecipeBuild {
     metricsByRepo.set(input.repo.id, input.card?.metrics ?? noMetrics());
   }
 
+  /** Repo ids are case-sensitive on the Hub but cards are typed by hand. */
+  const indexedByLower = new Map<string, string>();
+  for (const input of inputs) {
+    const key = input.repo.id.toLowerCase();
+    if (!indexedByLower.has(key)) indexedByLower.set(key, input.repo.id);
+  }
+
   /** Nearest Heretic conversion above (or at) this repo. */
   function ablationOf(id: string): string | null {
     let current = byId.get(id);
@@ -78,7 +105,9 @@ export function buildRecipes(inputs: RecipeInput[]): RecipeBuild {
       seen.add(current.repo.id);
       if (current.classification.kind === "heretic") return current.repo.id;
       const parent = current.classification.parents[0];
-      current = parent ? byId.get(parent) : undefined;
+      if (!parent) return null;
+      const next = byId.get(parent) ?? byId.get(indexedByLower.get(parent.toLowerCase()) ?? "");
+      current = next;
     }
     return null;
   }
@@ -87,7 +116,13 @@ export function buildRecipes(inputs: RecipeInput[]): RecipeBuild {
   for (const input of inputs) {
     if (!input.classification.verified) continue;
     if (!input.classification.originId) continue;
-    const ablation = ablationOf(input.repo.id);
+    // A verified artifact with no ablation ancestor still carries its own numbers,
+    // so it stands in as its own ablation rather than dropping out of the
+    // leaderboard. The signature merge below folds it into a parent's recipe
+    // when it copied that recipe's numbers.
+    const own = metricsByRepo.get(input.repo.id);
+    const ablation =
+      ablationOf(input.repo.id) ?? (own && hasNumbers(own) ? input.repo.id : null);
     if (!ablation) continue;
     const list = groups.get(ablation) ?? [];
     list.push(input);
@@ -125,18 +160,15 @@ export function buildRecipes(inputs: RecipeInput[]): RecipeBuild {
     ].join("|");
     const recipeId = recipeIdFor(key);
 
-    // Artifacts without their own card numbers inherit the recipe evidence.
+    // Artifacts without their own card numbers inherit the recipe evidence. An
+    // artifact that published its own pair keeps its own confidence and source:
+    // relabelling it "inherited" would point readers at a repo that reports
+    // different numbers.
     for (const member of group) {
       const own = metricsByRepo.get(member.repo.id)!;
       if (!hasNumbers(own)) {
         metricsByRepo.set(member.repo.id, {
           ...evidenceMetrics,
-          confidence: "inherited",
-          sourceRepoId: evidence.repo.id,
-        });
-      } else if (member.repo.id !== evidence.repo.id) {
-        metricsByRepo.set(member.repo.id, {
-          ...own,
           confidence: "inherited",
           sourceRepoId: evidence.repo.id,
         });
@@ -195,8 +227,9 @@ export function buildRecipes(inputs: RecipeInput[]): RecipeBuild {
       score: score?.quality ?? 0,
       pareto: false,
       bestPick: false,
-      implausible: evidenceMetrics.kl === 0 && evidenceMetrics.refusals === 0,
+      implausible: evidenceMetrics.kl !== null && evidenceMetrics.kl < KL_FLOOR,
       confidence: evidenceMetrics.confidence,
+      verification: verificationFor(evidence, evidenceMetrics.kl),
       hereticVersion: ablation.card?.hereticVersion ?? null,
       formats: [...allFormats].sort(),
       paramsB: ablation.repo.safetensorsTotal ? ablation.repo.safetensorsTotal / 1e9 : null,
@@ -231,6 +264,9 @@ export function buildRecipes(inputs: RecipeInput[]): RecipeBuild {
     keep.formats = [...new Set([...keep.formats, ...other.formats])].sort();
     keep.benchmarks = mergeBenchmarks(keep.benchmarks, other.benchmarks);
     keep.implausible = keep.implausible || other.implausible;
+    // Same numbers from two accounts is the signature merge firing. Only trust
+    // it if one side actually ships weights.
+    keep.verification = bestVerification(keep.verification, other.verification);
     bySignature.set(signature, keep);
   }
 
@@ -260,6 +296,7 @@ export function buildRecipes(inputs: RecipeInput[]): RecipeBuild {
       confidence: recipe.confidence,
       downloadsAllTime: recipe.downloadsAllTime,
       lastModified: recipe.lastModified,
+      verification: recipe.verification,
     }));
     const frontier = paretoIds(scoreInputs);
     const best = bestPickId(scoreInputs);

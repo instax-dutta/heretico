@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { formatScore } from "@/lib/format";
+import type { Verification } from "@/lib/types";
 
 export function Card({
   children,
@@ -61,8 +62,17 @@ export function ScorePill({ score }: { score: number }) {
   return <Badge tone={scoreTone(score)}>{formatScore(score)}</Badge>;
 }
 
-export function Empty({ children }: { children: ReactNode }) {
-  return <p className="py-10 text-center text-sm text-zinc-500">{children}</p>;
+/**
+ * Shown when nothing corroborates a recipe beyond its own model card: the
+ * evidence repo does not ship weights, or reports a KL no abliteration produces.
+ */
+export function VerificationBadge({ verification }: { verification: Verification }) {
+  if (verification !== "unverified") return null;
+  return (
+    <Badge tone="warn" title="No corroboration beyond this card: the repository does not publish model weights, or its KL is below what an abliteration can produce. The numbers may still be correct.">
+      unverified
+    </Badge>
+  );
 }
 
 export function Breadcrumbs({ items }: { items: { label: string; href?: string }[] }) {

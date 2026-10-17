@@ -72,7 +72,9 @@ score     = 100 × (${WEIGHTS.refusals} × (1 − rate) + ${WEIGHTS.kl} × reten
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">Best pick and Pareto frontier</h2>
         <p>
-          Within one base model, the <strong>Best</strong> badge goes to the highest score. The{" "}
+          Within one base model, the <strong>Best</strong> badge goes to the highest-scoring
+          verified conversion. A model whose conversions all rest on a single uncorroborated card
+          gets no best version. The{" "}
           <strong>Pareto</strong> badge marks attempts that no other attempt beats on both KL and
           refusal rate at once. A Pareto point is often the interesting one for a specific use:
           for example, a version with 0% refusals at higher KL, or 20% refusals at almost no
@@ -85,22 +87,35 @@ score     = 100 × (${WEIGHTS.refusals} × (1 − rate) + ${WEIGHTS.kl} × reten
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold">Evidence confidence</h2>
+        <h2 className="text-lg font-semibold">Verification</h2>
+        <p>
+          The directory never re-runs an evaluation, so every metric here is self-reported.
+          Verification is therefore not a claim that the numbers are true. It is a statement about
+          what stands behind them.
+        </p>
         <ul className="list-disc pl-5">
           <li>
-            <strong>Published</strong> — the model card states both KL and refusals for this
-            ablation. Only these numbers are ranked.
+            <strong>verified</strong> — the repository that published the numbers also ships real
+            model weights, and the KL it reports is one an abliteration can physically produce.
+            Uploading weights costs gigabytes, which a fabricated card does not.
           </li>
           <li>
-            <strong>Inherited</strong> — a quant or derivative has no numbers of its own; it
-            inherits its parent conversion&apos;s values and links to the source card.
+            <strong>unverified</strong> — nothing corroborates the card beyond the card itself.
+            These rows still rank, but never take rank 1, because a card claiming zero refusals
+            and near-zero KL would otherwise score a perfect 100 and top the board. If every
+            conversion of a model is unverified, that model has no &ldquo;best version&rdquo;
+            at all.
           </li>
           <li>
-            <strong>None</strong> — one or both numbers are missing, ambiguous, or appear only as
+            <strong>inherited</strong> — a quant or derivative with no numbers of its own, showing
+            its parent conversion&apos;s values and linking to that source card.
+          </li>
+          <li>
+            <strong>none</strong> — one or both numbers are missing, ambiguous, or appear only as
             quantization loss or a trial log. These artifacts are listed but not scored.
           </li>
         </ul>
-        <p>
+        <p className="text-zinc-600 dark:text-zinc-400">
           Published benchmarks (MMLU, GSM8K, GPQA…) are copied only when a table explicitly
           attributes a column to the abliterated model. They are shown as evidence and never
           affect the score, because coverage is too sparse and the metrics too heterogeneous to

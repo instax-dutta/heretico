@@ -1,17 +1,16 @@
 /**
- * Turn `data/raw.json` into `data/snapshot.json` and the browser copy at
- * `public/data/snapshot.json`.
+ * Turn `data/raw.json` into `data/snapshot.json`.
  *
  * Separate from the crawl so parser/scoring changes can be applied to existing
- * data without touching the network:
+ * data without touching the network. `scripts/sync-public.ts` trims the browser
+ * copy out of the result afterwards.
  *
  *   npm run crawl
  *   npm run snapshot
  */
-import { existsSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { buildSnapshot, type RawDataset } from "@/lib/snapshot";
-import type { Snapshot } from "@/lib/types";
 
 const ROOT = process.cwd();
 const RAW_PATH = join(ROOT, "data", "raw.json");
@@ -41,7 +40,7 @@ function main(): void {
   const json = JSON.stringify(snapshot);
   writeAtomic(SNAPSHOT_PATH, json);
 
-  const mb = (JSON.stringify(snapshot).length / 1024 / 1024).toFixed(2);
+  const mb = (json.length / 1024 / 1024).toFixed(2);
   console.log(
     [
       `Snapshot written (${mb} MB):`,
@@ -53,8 +52,6 @@ function main(): void {
       `  downloads    ${snapshot.totals.downloadsAllTime.toLocaleString("en-US")}`,
     ].join("\n"),
   );
-  void (snapshot as Snapshot);
-  void statSync(SNAPSHOT_PATH).size;
 }
 
 main();

@@ -32,10 +32,11 @@ const index = {
 };
 
 mkdirSync(dirname(target), { recursive: true });
+const json = JSON.stringify(index);
 const tmp = `${target}.tmp`;
-writeFileSync(tmp, JSON.stringify(index));
+writeFileSync(tmp, json);
 renameSync(tmp, target);
 if (existsSync(legacy)) unlinkSync(legacy);
 
-const size = (JSON.stringify(index).length / 1024 / 1024).toFixed(2);
+const size = (json.length / 1024 / 1024).toFixed(2);
 console.log(`Synced browser index (${size} MB) -> ${target}`);

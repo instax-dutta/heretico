@@ -1,15 +1,7 @@
-import { SIZE_CLASSES } from "./naming";
-import type { SizeClass } from "./types";
-
 const compact = new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 });
-const integer = new Intl.NumberFormat("en-US");
 
 export function formatCompact(value: number): string {
   return compact.format(value);
-}
-
-export function formatInteger(value: number): string {
-  return integer.format(value);
 }
 
 export function formatPercent(value: number | null, digits = 1): string {
@@ -36,10 +28,6 @@ export function formatDate(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "—";
   return date.toISOString().slice(0, 10);
-}
-
-export function sizeClassLabel(key: SizeClass | string): string {
-  return SIZE_CLASSES.find((entry) => entry.key === key)?.label ?? "Unknown";
 }
 
 export function formatParams(
@@ -72,8 +60,4 @@ export function repoHref(id: string): string {
 
 export function familyHref(slug: string): string {
   return `/families/${slug}/`;
-}
-
-export function repoName(id: string): string {
-  return id.split("/").pop() ?? id;
 }

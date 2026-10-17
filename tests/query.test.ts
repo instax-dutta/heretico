@@ -7,7 +7,6 @@ import {
   queryToSearchParams,
   recipesForOrigin,
   runQuery,
-  searchOrigins,
   type LeaderboardQuery,
 } from "@/lib/query";
 import type { Origin, Recipe, RepoRecord, Snapshot } from "@/lib/types";
@@ -55,6 +54,7 @@ function recipe(id: string, overrides: Partial<Recipe> = {}): Recipe {
     bestPick: false,
     implausible: false,
     confidence: "high",
+    verification: "verified",
     hereticVersion: "1.2.0",
     formats: ["safetensors"],
     paramsB: 4,
@@ -223,6 +223,28 @@ describe("runQuery", () => {
     expect(runQuery(rows, q({ sort: "downloads" })).rows[0].recipe.id).toBe("r1");
   });
 
+  it("never puts an unverified row at rank 1, whatever the sort", () => {
+    const attacked = buildLeaderboardRows({
+      origins: snapshot.origins,
+      recipes: [
+        // A fabricated perfect card: best possible score, nothing behind it.
+        recipe("fake", { kl: 0, refusals: 0, refusalTotal: 100, score: 100, verification: "unverified" }),
+        recipe("real", { kl: 0.2, refusals: 1, score: 95, verification: "verified" }),
+      ],
+    });
+    const byId = new Map(attacked.map((r) => [r.recipe.id, r]));
+    expect(byId.get("fake")!.rank).toBe(2);
+    expect(byId.get("real")!.rank).toBe(1);
+
+    // And in the client-side query, for every sort direction.
+    for (const sort of ["score", "kl", "downloads"] as const) {
+      for (const dir of ["asc", "desc"] as const) {
+        const first = runQuery(attacked, q({ sort, dir })).rows[0].recipe.id;
+        expect(first).toBe("real");
+      }
+    }
+  });
+
   it("paginates and clamps out-of-range pages", () => {
     const result = runQuery(rows, q({ perPage: 25, page: 9 }));
     expect(result.total).toBe(3);
@@ -239,13 +261,5 @@ describe("runQuery", () => {
 describe("recipesForOrigin", () => {
   it("returns the cohort's recipes best first", () => {
     expect(recipesForOrigin(snapshot, "Qwen/Qwen3-4B").map((r) => r.id)).toEqual(["r1", "r2", "r4"]);
-  });
-});
-
-describe("searchOrigins", () => {
-  it("ranks exact and prefix matches first", () => {
-    expect(searchOrigins(snapshot.origins, "qwen3-4b")[0].id).toBe("Qwen/Qwen3-4B");
-    expect(searchOrigins(snapshot.origins, "gemma")[0].id).toBe("google/gemma-3-12b-it");
-    expect(searchOrigins(snapshot.origins, "zzz")).toEqual([]);
   });
 });

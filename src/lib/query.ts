@@ -1,4 +1,4 @@
-import { scoreOf } from "./scoring";
+import { compareForLeaderboard, isVerified } from "./scoring";
 import type { Family, Origin, Recipe, Snapshot, SnapshotTotals } from "./types";
 
 export type SortKey = "score" | "kl" | "refusals" | "downloads" | "params" | "newest" | "model";
@@ -118,7 +118,12 @@ export function buildLeaderboardRows(snapshot: LeaderboardSource): LeaderboardRo
 
   const ranked = rows
     .filter((row) => row.recipe.score > 0)
-    .sort((a, b) => b.recipe.score - a.recipe.score || a.recipe.id.localeCompare(b.recipe.id));
+    .sort(
+      (a, b) =>
+        Number(isVerified(b.recipe)) - Number(isVerified(a.recipe)) ||
+        b.recipe.score - a.recipe.score ||
+        a.recipe.id.localeCompare(b.recipe.id),
+    );
   ranked.forEach((row, index) => {
     row.rank = index + 1;
   });
@@ -127,6 +132,7 @@ export function buildLeaderboardRows(snapshot: LeaderboardSource): LeaderboardRo
   const familySorted = [...ranked].sort(
     (a, b) =>
       a.origin.familySlug.localeCompare(b.origin.familySlug) ||
+      Number(isVerified(b.recipe)) - Number(isVerified(a.recipe)) ||
       b.recipe.score - a.recipe.score ||
       a.recipe.id.localeCompare(b.recipe.id),
   );
@@ -204,7 +210,7 @@ export interface QueryResult {
   perPage: number;
 }
 
-/** Filter, sort and paginate. Unranked rows always sort after ranked ones. */
+/** Filter, sort and paginate. Unranked rows sort after ranked, unverified after verified. */
 export function runQuery(rows: LeaderboardRow[], query: LeaderboardQuery): QueryResult {
   const filtered = rows.filter((row) => matchesQuery(row, query));
   const direction = query.dir === "asc" ? 1 : -1;
@@ -213,6 +219,11 @@ export function runQuery(rows: LeaderboardRow[], query: LeaderboardQuery): Query
     const aRanked = a.recipe.score > 0;
     const bRanked = b.recipe.score > 0;
     if (aRanked !== bRanked) return aRanked ? -1 : 1;
+    // Corroboration is not a user-facing sort key: it always outranks the chosen
+    // sort, so an unverified row can never sit at the top of any ordering.
+    const aVerified = isVerified(a.recipe);
+    const bVerified = isVerified(b.recipe);
+    if (aVerified !== bVerified) return aVerified ? -1 : 1;
     const primary = compareRows(a, b, query.sort);
     if (primary !== 0) return primary * direction;
     return a.recipe.id.localeCompare(b.recipe.id);
@@ -254,51 +265,5 @@ export function queryToSearchParams(query: LeaderboardQuery): URLSearchParams {
 export function recipesForOrigin(snapshot: Pick<Snapshot, "recipes">, originId: string): Recipe[] {
   return snapshot.recipes
     .filter((recipe) => recipe.originId === originId)
-    .sort((a, b) => {
-      const aScore = scoreOf({
-        id: a.id,
-        kl: a.kl,
-        refusals: a.refusals,
-        refusalTotal: a.refusalTotal,
-        confidence: a.confidence,
-        downloadsAllTime: a.downloadsAllTime,
-        lastModified: a.lastModified,
-      });
-      const bScore = scoreOf({
-        id: b.id,
-        kl: b.kl,
-        refusals: b.refusals,
-        refusalTotal: b.refusalTotal,
-        confidence: b.confidence,
-        downloadsAllTime: b.downloadsAllTime,
-        lastModified: b.lastModified,
-      });
-      if (aScore && bScore && bScore.quality !== aScore.quality) return bScore.quality - aScore.quality;
-      if (Boolean(aScore) !== Boolean(bScore)) return aScore ? -1 : 1;
-      return b.downloadsAllTime - a.downloadsAllTime || a.id.localeCompare(b.id);
-    });
-}
-
-export function searchOrigins(origins: Origin[], text: string, limit = 30): Origin[] {
-  const needle = text.trim().toLowerCase();
-  if (!needle) return [];
-  const scored = origins
-    .map((origin) => {
-      const name = origin.name.toLowerCase();
-      const id = origin.id.toLowerCase();
-      let score = 0;
-      if (name === needle || id === needle) score = 100;
-      else if (name.startsWith(needle)) score = 50;
-      else if (name.includes(needle)) score = 20;
-      else if (id.includes(needle)) score = 10;
-      return { origin, score };
-    })
-    .filter((entry) => entry.score > 0)
-    .sort(
-      (a, b) =>
-        b.score - a.score ||
-        (b.origin.bestScore ?? 0) - (a.origin.bestScore ?? 0) ||
-        a.origin.id.localeCompare(b.origin.id),
-    );
-  return scored.slice(0, limit).map((entry) => entry.origin);
+    .sort((a, b) => compareForLeaderboard(a, b));
 }

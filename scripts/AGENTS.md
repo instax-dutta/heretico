@@ -23,7 +23,9 @@ Offline data pipeline and the runnable oracles behind `GATES.md`.
   tagged pass winning collisions (p-e-w/heretic#450). Do not add a third pass
   without a proven recall gain.
 - Every network request has a timeout and bounded retries; one failing repo must
-  never abort a crawl.
+  never abort a crawl. A retry loop that runs out of attempts must throw the real
+  cause (`HF 429 for …`), not a generic "failed to fetch", and must not sleep
+  again on the last attempt.
 - The crawler writes atomically (`.tmp` + rename) and is resumable via
   `data/cache/cards/*.json`.
 - `data/raw.json` is an intermediate and is gitignored; only
@@ -37,7 +39,8 @@ Offline data pipeline and the runnable oracles behind `GATES.md`.
 
 - Test cache/classification behaviour in `tests/` rather than shell scripts.
 - Keep the crawl polite: default concurrency 10–14, no authenticated scraping.
-- Never commit `data/cache/` or crawl logs.
+- Progress counters report completed work, not input positions, because workers
+  finish out of order. Never commit `data/cache/` or crawl logs.
 
 ## Verification
 

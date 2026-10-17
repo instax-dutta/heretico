@@ -6,10 +6,9 @@ import {
   formatKl,
   huggingFaceUrl,
   originHref,
-  repoName,
 } from "@/lib/format";
 import type { LeaderboardRow } from "@/lib/query";
-import { Badge, ScorePill } from "./ui";
+import { Badge, ScorePill, VerificationBadge } from "./ui";
 
 export function RecipeTable({
   rows,
@@ -95,8 +94,9 @@ export function RecipeTable({
                 <td className="py-2 pr-3">
                   <div className="flex flex-wrap gap-1">
                     {recipe.bestPick ? <Badge tone="good">Best</Badge> : null}
+                    <VerificationBadge verification={recipe.verification} />
                     {recipe.implausible ? (
-                      <Badge tone="warn" title="The card reports zero KL and zero refusals, which cannot both be measured for an abliterated model">
+                      <Badge tone="warn" title="The card reports a KL divergence below what an abliteration can produce, so the weights were not measurably changed">
                         implausible
                       </Badge>
                     ) : null}
@@ -120,8 +120,4 @@ export function RecipeTable({
       </table>
     </div>
   );
-}
-
-export function RecipeLink({ id }: { id: string }) {
-  return <span className="font-mono text-xs">{repoName(id)}</span>;
 }

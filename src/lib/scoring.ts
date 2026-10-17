@@ -1,4 +1,4 @@
-import type { MetricConfidence } from "./types";
+import type { MetricConfidence, Verification } from "./types";
 
 /**
  * Conversion quality.
@@ -26,6 +26,18 @@ export interface ScoreInput {
   confidence: MetricConfidence;
   downloadsAllTime?: number;
   lastModified?: string;
+  /** Absent for callers that do not model it; treated as unverified. */
+  verification?: Verification;
+}
+
+/**
+ * A recipe is corroborated when something beyond its own model card backs it:
+ * the evidence repo ships real weights and its KL is physically possible. An
+ * uncorroborated recipe still ranks, but never holds rank 1, so a fabricated
+ * card cannot top the board by writing two numbers.
+ */
+export function isVerified(input: ScoreInput): boolean {
+  return input.verification === "verified" || input.verification === "publisher";
 }
 
 export interface Score {
@@ -91,8 +103,13 @@ export function paretoIds(inputs: ScoreInput[]): Set<string> {
   return frontier;
 }
 
-/** Deterministic leaderboard order. */
+/** Deterministic leaderboard order: verified rows first, then by score. */
 export function compareForLeaderboard(a: ScoreInput, b: ScoreInput): number {
+  // Corroboration outranks score. Without this a fabricated card that claims
+  // zero refusals and near-zero KL takes rank 1 over every measured model.
+  const va = isVerified(a);
+  const vb = isVerified(b);
+  if (va !== vb) return va ? -1 : 1;
   const sa = scoreOf(a);
   const sb = scoreOf(b);
   if (sa && sb && sb.quality !== sa.quality) return sb.quality - sa.quality;
@@ -111,37 +128,15 @@ export function compareForLeaderboard(a: ScoreInput, b: ScoreInput): number {
   return a.id.localeCompare(b.id);
 }
 
-/** Sorted rankable inputs first, then unranked deterministically. */
-export function orderByQuality<T extends ScoreInput>(items: T[]): T[] {
-  return [...items].sort(compareForLeaderboard);
-}
-
 /**
- * Assign 1-based ranks inside a group. Returns id -> rank; unranked items are
- * omitted so callers never render a fake rank.
+ * Best recipe in a cohort: verified first, then quality, downloads, recency, id.
+ *
+ * Returns null when nothing in the cohort is corroborated. An origin whose
+ * conversions all rest on a single self-published card has no best version —
+ * saying otherwise would hand the top slot to the least verifiable row.
  */
-export function assignRanks<T extends ScoreInput>(
-  items: T[],
-  groupKey: (item: T) => string | null,
-): Map<string, number> {
-  const ranks = new Map<string, number>();
-  const groups = new Map<string, T[]>();
-  for (const item of items) {
-    const key = groupKey(item);
-    if (key === null) continue;
-    const list = groups.get(key) ?? [];
-    list.push(item);
-    groups.set(key, list);
-  }
-  for (const list of groups.values()) {
-    const ranked = list.filter(isRankable).sort(compareForLeaderboard);
-    ranked.forEach((item, index) => ranks.set(item.id, index + 1));
-  }
-  return ranks;
-}
-
-/** Best recipe in a cohort: quality, then downloads, then recency, then id. */
 export function bestPickId<T extends ScoreInput>(items: T[]): string | null {
   const ranked = items.filter(isRankable).sort(compareForLeaderboard);
-  return ranked[0]?.id ?? null;
+  if (!ranked.some(isVerified)) return null;
+  return ranked.find(isVerified)?.id ?? null;
 }

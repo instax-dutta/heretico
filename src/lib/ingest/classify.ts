@@ -205,8 +205,3 @@ function canonicalizeOrigins(
       canonical.get(classification.originId.toLowerCase()) ?? classification.originId;
   }
 }
-
-/** True when a repo id looks like a Heretic conversion rather than an upstream model. */
-export function isHereticName(id: string): boolean {
-  return nameLooksHereic(id);
-}

@@ -1,10 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
-  assignRanks,
   bestPickId,
   capabilityRetention,
   isRankable,
-  orderByQuality,
+  isVerified,
   paretoIds,
   refusalRate,
   scoreOf,
@@ -17,7 +16,8 @@ function point(overrides: Partial<ScoreInput> = {}): ScoreInput {
     kl: 0.1,
     refusals: 5,
     refusalTotal: 100,
-    confidence: "high",
+    confidence: "medium",
+    verification: "verified",
     downloadsAllTime: 0,
     lastModified: "2026-01-01T00:00:00.000Z",
     ...overrides,
@@ -90,43 +90,6 @@ describe("paretoIds", () => {
   });
 });
 
-describe("orderByQuality", () => {
-  it("is deterministic and breaks ties by KL, refusals, downloads, recency, id", () => {
-    const order = orderByQuality([
-      point({ id: "b", kl: 0.1, refusals: 5, downloadsAllTime: 10 }),
-      point({ id: "a", kl: 0.1, refusals: 5, downloadsAllTime: 10 }),
-      point({ id: "c", kl: 0.05, refusals: 5 }),
-    ]).map((p) => p.id);
-    expect(order).toEqual(["c", "a", "b"]);
-  });
-
-  it("places unranked rows after ranked ones", () => {
-    const order = orderByQuality([
-      point({ id: "unranked", confidence: "none" }),
-      point({ id: "ranked" }),
-    ]).map((p) => p.id);
-    expect(order).toEqual(["ranked", "unranked"]);
-  });
-});
-
-describe("assignRanks", () => {
-  it("ranks within groups and skips unranked rows", () => {
-    const ranks = assignRanks(
-      [
-        point({ id: "q1", kl: 0.05 }),
-        point({ id: "q2", kl: 0.3 }),
-        point({ id: "q3", confidence: "none" }),
-        point({ id: "g1", kl: 0.02 }),
-      ],
-      (p) => (p.id.startsWith("q") ? "qwen" : "gemma"),
-    );
-    expect(ranks.get("q1")).toBe(1);
-    expect(ranks.get("q2")).toBe(2);
-    expect(ranks.has("q3")).toBe(false);
-    expect(ranks.get("g1")).toBe(1);
-  });
-});
-
 describe("bestPickId", () => {
   it("picks the highest quality and breaks ties by downloads", () => {
     expect(
@@ -136,6 +99,33 @@ describe("bestPickId", () => {
       ]),
     ).toBe("b");
     expect(bestPickId([point({ id: "x", confidence: "none" })])).toBeNull();
+  });
+
+  it("prefers a verified recipe over a higher-scoring unverified one", () => {
+    // The attack: a card claiming zero KL and zero refusals scores a perfect
+    // 100, but nothing corroborates it.
+    const fake = point({ id: "fake", kl: 0, refusals: 0, verification: "unverified" });
+    const real = point({ id: "real", kl: 0.3, refusals: 2, verification: "verified" });
+    expect(scoreOf(fake)!.quality).toBeGreaterThan(scoreOf(real)!.quality);
+    expect(bestPickId([fake, real])).toBe("real");
+    expect(bestPickId([real, fake])).toBe("real");
+    // Nothing corroborated means nothing to recommend.
+    expect(
+      bestPickId([
+        fake,
+        point({ id: "u2", kl: 0.4, refusals: 9, verification: "unverified" }),
+      ]),
+    ).toBeNull();
+  });
+});
+
+describe("isVerified", () => {
+  it("treats only verified and publisher as corroborated", () => {
+    expect(isVerified(point({ verification: "verified" }))).toBe(true);
+    expect(isVerified(point({ verification: "publisher" }))).toBe(true);
+    expect(isVerified(point({ verification: "unverified" }))).toBe(false);
+    // Absent field: callers that do not model it get the safe answer.
+    expect(isVerified({ ...point(), verification: undefined })).toBe(false);
   });
 });
 

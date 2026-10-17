@@ -35,7 +35,3 @@ export function assert(condition, message) {
 export function readJson(path) {
   return JSON.parse(readFileSync(path, "utf8"));
 }
-
-export function readText(path) {
-  return readFileSync(path, "utf8");
-}

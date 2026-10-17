@@ -20,6 +20,20 @@ export type RepoKind =
 /** How much we trust a KL/refusal pair. Only high + medium are ranked. */
 export type MetricConfidence = "high" | "medium" | "inherited" | "none";
 
+/**
+ * Whether anything corroborates a recipe beyond its own model card.
+ *
+ * The directory never re-runs an evaluation, so every number here is
+ * self-reported. `verified` means the evidence repo ships real weights (GBs of
+ * upload, which a fabricated card cannot fake) and reports a physically
+ * possible KL. `unverified` still ranks, but never takes rank 1.
+ *
+ * `publisher` is reserved for a publisher proving ownership of the repo; see
+ * `MetricConfidence` for how the pair of signals combine. Not implemented: the
+ * crawl has no verification token to check yet.
+ */
+export type Verification = "verified" | "unverified" | "publisher";
+
 export type SizeClass =
   | "sub-1b"
   | "1-4b"
@@ -152,9 +166,11 @@ export interface Recipe {
   score: number;
   pareto: boolean;
   bestPick: boolean;
-  /** Card claims both zero KL and zero refusals, which cannot both be measured. */
+  /** KL is below the floor an abliteration can produce: not a measurement. */
   implausible: boolean;
   confidence: MetricConfidence;
+  /** Corroboration beyond the card. `unverified` never takes rank 1. */
+  verification: Verification;
   hereticVersion: string | null;
   formats: string[];
   paramsB: number | null;

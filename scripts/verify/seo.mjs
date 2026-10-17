@@ -18,8 +18,10 @@ const urls = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[
 assert(urls.length > 0, "sitemap has no URLs");
 assert(new Set(urls).size === urls.length, "sitemap contains duplicate URLs");
 
-const expectedMinimum =
-  snapshot.origins.length + snapshot.repos.length + snapshot.families.length + 5;
+  // /repo/ is generated only for artifacts that published numbers, so the
+  // sitemap lists measured artifacts rather than every verified repo.
+  const expectedMinimum =
+    snapshot.origins.length + snapshot.families.length + 5 + 0.5 * snapshot.repos.length;
 assert(
   urls.length >= expectedMinimum,
   `sitemap has ${urls.length} URLs, expected at least ${expectedMinimum}`,

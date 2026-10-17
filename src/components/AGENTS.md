@@ -10,7 +10,7 @@ model directory) that filter the snapshot in the browser.
 - `ui.tsx` — primitives (Card, Stat, Badge, ScorePill, Breadcrumbs)
 - `RecipeTable.tsx` — ranked table, safe in server and client trees
 - `LeaderboardExplorer.tsx` — client filters, URL state, pagination
-- `ModelExplorer.tsx` — client model search
+- `ModelExplorer.tsx` — client model search and pagination
 
 ## Local Contracts
 
@@ -21,6 +21,8 @@ model directory) that filter the snapshot in the browser.
   it with the full result set. A failed fetch keeps the prerendered page.
 - URL state is written with `history.replaceState`; do not use `useSearchParams`
   (it forces a Suspense boundary that static export does not need).
+- Every full-dataset table is paged. The model index has ~1k origins and a row is
+  ~8 elements; rendering them all costs thousands of DOM nodes on a phone.
 - Components never compute scores themselves; use `lib/scoring` and `lib/query`.
 
 ## Work Guidance

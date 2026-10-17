@@ -79,6 +79,7 @@ async function main(): Promise<void> {
   let reused = 0;
   let fetched = 0;
   let errors = 0;
+  let done = 0;
   const cards: Record<string, ParsedCard | null> = {};
   const repos: RawFile["repos"] = [];
 
@@ -111,7 +112,6 @@ async function main(): Promise<void> {
       errors += 1;
       console.warn(`\n  ! ${raw.id}: ${(error as Error).message}`);
       card = cached?.card ?? null;
-      fetched += 1;
     }
     cards[raw.id] = card;
     repos[index] = {
@@ -120,10 +120,11 @@ async function main(): Promise<void> {
       hasReadme: card !== null,
     };
 
-    const done = index + 1;
+    // Workers finish out of order, so count completions rather than positions.
+    done += 1;
     if (done % 100 === 0 || done === models.length) {
       process.stdout.write(
-        `  ${done}/${models.length} repos (${fetched} fetched, ${reused} cached)\r`,
+        `  ${done}/${models.length} repos (${fetched} fetched, ${reused} cached, ${errors} failed)\r`,
       );
     }
   });

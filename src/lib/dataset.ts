@@ -8,6 +8,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { buildLeaderboardRows, recipesForOrigin, type LeaderboardRow } from "./query";
+import { compareForLeaderboard } from "./scoring";
 import type { Family, Origin, Recipe, RepoRecord, Snapshot } from "./types";
 
 let cachedSnapshot: Snapshot | null = null;
@@ -36,6 +37,15 @@ export function getOrigins(): Origin[] {
 export function getOrigin(id: string): Origin | undefined {
   if (!cachedOrigins) cachedOrigins = new Map(getSnapshot().origins.map((o) => [o.id, o]));
   return cachedOrigins.get(id);
+}
+
+/**
+ * Artifacts with no published metrics of their own. They appear in a model
+ * page's artifact table and in the counts, but get no `/repo/` page: there is
+ * nothing to show but a provenance blurb, and they are 37% of the export.
+ */
+export function getMeasuredRepos(): RepoRecord[] {
+  return getSnapshot().repos.filter((repo) => repo.metrics.confidence !== "none");
 }
 
 export function getRecipe(id: string): Recipe | undefined {
@@ -71,6 +81,6 @@ export function getFamilyOrigins(slug: string): Origin[] {
 export function getTopRows(limit = 10): LeaderboardRow[] {
   return getLeaderboardRows()
     .filter((row) => row.recipe.score > 0)
-    .sort((a, b) => b.recipe.score - a.recipe.score || a.recipe.id.localeCompare(b.recipe.id))
+    .sort((a, b) => compareForLeaderboard(a.recipe, b.recipe))
     .slice(0, limit);
 }

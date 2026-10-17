@@ -27,8 +27,10 @@ jobs:
 
       - run: npm ci
 
-      # Parsed cards only (~2 MB), so daily caches are cheap. This is what makes
-      # the crawl incremental: unchanged repos are never fetched again.
+      # Card texts keyed by repo id + commit sha (~30 MB at 8k repos, the
+      # markdown dominates). The run-id key makes every day a fresh entry,
+      # restored from the newest matching prefix below. This is what makes the
+      # crawl incremental: unchanged repos are never fetched again.
       - uses: actions/cache@v4
         with:
           path: data/cache
@@ -59,9 +61,19 @@ jobs:
       - name: Commit refreshed snapshot
         run: |
           git config user.name "heretic-index-bot"
-          git config user.email "actions@users.noreply.github.com"
+          git config user.email "actions@users@github.com"
           git add data/snapshot.json
-          if git diff --staged --quiet; then
+          # updatedAt is stamped with the crawl time on every run, so on its own
+          # it makes the diff always non-empty. Compare everything else, or a
+          # day with no new repo redeploys 600 MB of identical HTML.
+          if node -e '
+            const { execSync } = require("child_process");
+            const fs = require("fs");
+            const strip = (t) => t.replace(/"updatedAt":"[^"]*"/, "\"updatedAt\":\"\"");
+            const before = strip(execSync("git show HEAD:data/snapshot.json", { encoding: "utf8", maxBuffer: 1 << 28 }));
+            const after = strip(fs.readFileSync("data/snapshot.json", "utf8"));
+            process.exit(before === after ? 0 : 1);
+          '; then
             echo "Snapshot unchanged"
           else
             git commit -m "Refresh Heretic snapshot"

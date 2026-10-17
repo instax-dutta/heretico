@@ -188,7 +188,6 @@ export function slugify(value: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 }
-
 const QUANT_PATTERN =
   /\b(IQ\d_[A-Z]{1,3}|Q\d_K_[A-Z]{1,2}|Q\d_[01]|Q\d_K|BF16|F16|F32|FP8|FP4|NVFP4|INT4|INT8|MXFP4)\b/i;
 
@@ -231,16 +230,4 @@ export function detectFormats({ name, tags, files }: FormatInput): string[] {
 
   if (formats.size === 0) formats.add("other");
   return [...formats].sort();
-}
-
-/** Params for display: "30B (3B active)" or "4B". */
-export function formatParams(totalB: number | null, activeB: number | null, moe: boolean): string {
-  if (totalB === null) return "—";
-  const total = `${trimNumber(totalB)}B`;
-  if (moe && activeB !== null) return `${total} (${trimNumber(activeB)}B active)`;
-  return total;
-}
-
-export function trimNumber(n: number): string {
-  return Number.isInteger(n) ? String(n) : String(Math.round(n * 10) / 10);
 }

@@ -27,11 +27,26 @@ const repoById = new Map();
 for (const repo of snapshot.repos) {
   check(!repoById.has(repo.id), `duplicate repo ${repo.id}`);
   repoById.set(repo.id, repo);
+}
+// Built before the checks below, because inherited metrics cite a source that may
+// be declared later in the list.
+for (const repo of snapshot.repos) {
   check(repo.verified === true, `unverified repo ${repo.id} leaked into the snapshot`);
   check(originById.has(repo.originId), `repo ${repo.id} points at unknown origin ${repo.originId}`);
   check(repo.declaredBaseModels.length > 0 || repo.kind === "unknown", `repo ${repo.id} has no declared base`);
   if (repo.metrics.confidence === "inherited") {
-    check(Boolean(repo.metrics.sourceRepoId), `inherited metrics on ${repo.id} lack a source`);
+    const source = repoById.get(repo.metrics.sourceRepoId);
+    check(Boolean(source), `inherited metrics on ${repo.id} lack a source`);
+    // Inherited means "these are the source's numbers". A repo that published its
+    // own pair must keep its own confidence, or the /repo/ page cites a repo that
+    // reports something else.
+    check(
+      source !== undefined &&
+        source.metrics.kl === repo.metrics.kl &&
+        source.metrics.refusals === repo.metrics.refusals &&
+        source.metrics.refusalTotal === repo.metrics.refusalTotal,
+      `inherited metrics on ${repo.id} do not match source ${repo.metrics.sourceRepoId}`,
+    );
   }
   if (repo.metrics.kl !== null) {
     check(repo.metrics.kl >= 0, `negative KL on ${repo.id}`);
@@ -39,6 +54,16 @@ for (const repo of snapshot.repos) {
   if (repo.metrics.refusals !== null) {
     check(repo.metrics.refusalTotal > 0, `missing refusal denominator on ${repo.id}`);
     check(repo.metrics.refusals <= repo.metrics.refusalTotal, `refusals exceed total on ${repo.id}`);
+  }
+}
+
+// Every artifact that published its own numbers must reach the leaderboard,
+// either as its own recipe or inside one it was grouped into.
+const artifactOf = new Set();
+for (const recipe of snapshot.recipes) for (const id of recipe.repoIds) artifactOf.add(id);
+for (const repo of snapshot.repos) {
+  if (repo.metrics.confidence === "high" || repo.metrics.confidence === "medium") {
+    check(artifactOf.has(repo.id), `measured repo ${repo.id} is on no leaderboard row`);
   }
 }
 
@@ -55,6 +80,20 @@ for (const recipe of snapshot.recipes) {
   check(recipe.repoIds.every((id) => repoById.has(id)), `recipe ${recipe.id} references unknown artifacts`);
   check(repoById.has(recipe.bestRepoId), `recipe ${recipe.id} bestRepoId unknown`);
   check(recipe.repoIds.includes(recipe.bestRepoId), `recipe ${recipe.id} bestRepoId not in artifacts`);
+  check(
+    ["verified", "unverified", "publisher"].includes(recipe.verification),
+    `recipe ${recipe.id} has no verification value`,
+  );
+  // Nothing uncorroborated may hold rank 1: a fabricated card claiming zero
+  // refusals scores a perfect 100 and would otherwise top the board.
+  check(
+    !recipe.bestPick || recipe.verification !== "unverified",
+    `recipe ${recipe.id} is the best pick but is unverified`,
+  );
+  check(
+    !(recipe.verification === "verified" && recipe.implausible),
+    `recipe ${recipe.id} is verified but reports an impossible KL`,
+  );
 
   const expected = quality(recipe.kl, recipe.refusals, recipe.refusalTotal);
   check(
@@ -73,7 +112,7 @@ for (const recipe of snapshot.recipes) {
 
 for (const [originId, cohort] of recipesByOrigin) {
   const best = cohort.filter((recipe) => recipe.bestPick);
-  check(best.length === 1, `origin ${originId} has ${best.length} best picks`);
+  check(best.length <= 1, `origin ${originId} has ${best.length} best picks`);
 
   for (const recipe of cohort) {
     const dominated = cohort.some((other) => {
@@ -93,7 +132,10 @@ for (const origin of snapshot.origins) {
     check(origin.bestRecipeId === null, `origin ${origin.id} has a best recipe but no recipes`);
   } else {
     const best = cohort.find((recipe) => recipe.bestPick);
-    check(origin.bestRecipeId === best.id, `origin ${origin.id} bestRecipeId mismatch`);
+    check(
+      (best?.id ?? null) === origin.bestRecipeId,
+      `origin ${origin.id} bestRecipeId mismatch (${origin.bestRecipeId} vs ${best?.id ?? "none"})`,
+    );
   }
 }
 

@@ -5,6 +5,7 @@ import { RecipeTable } from "@/components/RecipeTable";
 import { Badge, Breadcrumbs, Card } from "@/components/ui";
 import { getFamily, getFamilyOrigins, getLeaderboardRows, getSnapshot } from "@/lib/dataset";
 import { familyHref, formatCompact, formatParams } from "@/lib/format";
+import { compareForLeaderboard } from "@/lib/scoring";
 import type { LeaderboardRow } from "@/lib/query";
 
 export const dynamicParams = false;
@@ -32,7 +33,7 @@ export default async function FamilyPage({ params }: PageProps<"/families/[slug]
   const origins = getFamilyOrigins(slug);
   const rows = getLeaderboardRows()
     .filter((row) => row.origin.familySlug === slug && row.recipe.bestPick)
-    .sort((a, b) => b.recipe.score - a.recipe.score || a.recipe.id.localeCompare(b.recipe.id));
+    .sort((a, b) => compareForLeaderboard(a.recipe, b.recipe));
   const ranked: LeaderboardRow[] = rows.map((row, index) => ({ ...row, rank: index + 1 }));
 
   const unmeasured = origins.filter((origin) => origin.bestRecipeId === null);

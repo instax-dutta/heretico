@@ -497,12 +497,12 @@ export function parseCard(markdown: string, options: ParseOptions = {}): ParsedC
     metrics.originalRefusals = best.originalRefusals;
     metrics.originalRefusalTotal = best.originalTotal;
     metrics.evidence = best.evidence;
+    // `quality` scores how deliberate the layout is, not whether the numbers are
+    // true, so a tidy table earns no more trust than a plain sentence. Single-card
+    // confidence tops out at `medium`; corroboration beyond one card is the
+    // recipe's `verification`, computed in lib/ingest/recipes.ts.
     metrics.confidence =
-      best.kl !== null && best.refusals !== null
-        ? best.quality >= 85
-          ? "high"
-          : "medium"
-        : "none";
+      best.kl !== null && best.refusals !== null ? "medium" : "none";
   }
   if (metrics.confidence !== "none") baselineFrom(body, metrics);
 
@@ -515,7 +515,7 @@ export function parseCard(markdown: string, options: ParseOptions = {}): ParsedC
 
   const formatHints = new Set<string>();
   for (const match of body.slice(0, 4000).matchAll(/\b(gguf|mlx|fp8|nvfp4|mxfp4|awq|gptq|exl2|exl3|lora)\b/gi)) {
-    formatHints.add(match[1].toLowerCase().replace("exl2", "exl").replace("exl3", "exl"));
+    formatHints.add(match[1].toLowerCase().replace(/^exl[23]$/, "exl"));
   }
 
   return {

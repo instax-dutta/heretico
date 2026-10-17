@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { formatParams } from "@/lib/format";
 import {
   detectFormats,
   familyFor,
-  formatParams,
   parseParams,
   quantLabel,
   sizeClassFor,
@@ -114,9 +114,9 @@ describe("quantLabel", () => {
   });
 });
 
-describe("formatParams", () => {
+describe("formatParams (lib/format)", () => {
   it("renders MoE and dense sizes", () => {
-    expect(formatParams(30, 3, true)).toBe("30B (3B active)");
+    expect(formatParams(30, 3, true)).toBe("30B · 3B active");
     expect(formatParams(4, null, false)).toBe("4B");
     expect(formatParams(null, null, false)).toBe("—");
   });

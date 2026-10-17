@@ -102,11 +102,6 @@ export function parseRefusal(cell: string | undefined): { count: number; total: 
   return null;
 }
 
-/** Remove fenced code blocks so trial logs never win a metric search. */
-export function stripCodeFences(markdown: string): string {
-  return markdown.replace(/^[ \t]*(```+|~~~+)[^\n]*\n[\s\S]*?^[ \t]*\1[^\n]*$/gm, "");
-}
-
 export interface NumberedLine {
   line: number;
   text: string;

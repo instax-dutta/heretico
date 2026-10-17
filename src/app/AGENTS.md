@@ -19,6 +19,9 @@ plus one JSON index for browser-side filtering.
   or runtime data fetching.
 - Every dynamic route sets `dynamicParams = false` and exports
   `generateStaticParams` from the snapshot.
+- `/repo/` generates a page only for artifacts that published metrics
+  (`getMeasuredRepos`). `sitemap.ts` and the model artifact table must agree, or
+  links 404. Model pages also emit JSON-LD for assistants.
 - Server pages must not read `searchParams`; filtering is a client concern.
 - Route params are promises in this Next version: `const { id } = await params`.
 - Metadata comes from `generateMetadata`/`metadata`, with a canonical path.

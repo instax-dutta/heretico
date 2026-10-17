@@ -13,6 +13,9 @@ Turn a free-form Hugging Face model card into structured provenance and metrics.
 
 - Parser output always carries `confidence` and the exact matched `evidence`.
   A number without a trustworthy label match is not a metric.
+- Card confidence tops out at `medium`. Layout quality is not truth: a tidy
+  table and a scrawled sentence are equally self-reported. Corroboration past
+  one card is `Recipe.verification`, computed in `lib/ingest`.
 - Fenced code blocks are never searched: trial logs contain many plausible pairs.
 - Quantization KL figures (`IQ3_S 0.051`, `imatrix`) are not ablation metrics.
 - Baseline columns are identified from headers, not position: cards publish both

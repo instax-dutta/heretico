@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { getSnapshot } from "@/lib/dataset";
+import { getMeasuredRepos, getSnapshot } from "@/lib/dataset";
 
 export const dynamic = "force-static";
 
@@ -29,7 +29,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.6,
   }));
 
-  const repos: MetadataRoute.Sitemap = snapshot.repos.map((repo) => ({
+  const repos: MetadataRoute.Sitemap = getMeasuredRepos().map((repo) => ({
     url: `${BASE}/repo/${repo.id}/`,
     lastModified: new Date(repo.lastModified || snapshot.updatedAt),
     priority: 0.5,

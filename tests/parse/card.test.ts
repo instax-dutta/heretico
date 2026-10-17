@@ -19,7 +19,7 @@ describe("parseCard — canonical Heretic table", () => {
     expect(card.metrics.refusalTotal).toBe(100);
     expect(card.metrics.originalRefusals).toBe(97);
     expect(card.metrics.originalRefusalTotal).toBe(100);
-    expect(card.metrics.confidence).toBe("high");
+    expect(card.metrics.confidence).toBe("medium");
   });
 
   it("prefers the decensored-from link over the YAML base_model", () => {
@@ -77,7 +77,7 @@ describe("parseCard — bullet-list metrics with a trial log", () => {
     expect(card.metrics.refusals).toBe(8);
     expect(card.metrics.kl).toBeCloseTo(0.0801);
     expect(card.metrics.originalRefusals).toBe(100);
-    expect(card.metrics.confidence).toBe("high");
+    expect(card.metrics.confidence).toBe("medium");
   });
 
   it("finds the base model and version in prose", () => {
@@ -93,7 +93,7 @@ describe("parseCard — inline single-line pair", () => {
     expect(card.metrics.refusals).toBe(12);
     expect(card.metrics.kl).toBeCloseTo(0.09);
     expect(card.metrics.originalRefusals).toBe(96);
-    expect(card.metrics.confidence).toBe("high");
+    expect(card.metrics.confidence).toBe("medium");
   });
 
   it("reads the version from 'Ablitered/uncensored by Heretic v1.0.1'", () => {
@@ -135,7 +135,7 @@ describe("parseCard — transposed choice table", () => {
   it("selects the row marked 'this repo'", () => {
     expect(card.metrics.refusals).toBe(5);
     expect(card.metrics.kl).toBeCloseTo(0.037);
-    expect(card.metrics.confidence).toBe("high");
+    expect(card.metrics.confidence).toBe("medium");
   });
 });
 
