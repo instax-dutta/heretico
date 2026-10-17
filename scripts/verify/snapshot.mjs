@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { readJson } from "./util.mjs";
 
 const snapshot = readJson("data/snapshot.json");
@@ -165,6 +166,43 @@ check(
   snapshot.totals.rankedRecipes / snapshot.totals.recipes >= 0.8,
   "too many measured recipes are unrankable",
 );
+
+// Regression guard. Absolute floors pass while the index silently shrinks: a
+// burst of HTTP 429s during the crawl drops every repo whose README failed, and
+// the site then publishes less than yesterday while every other check still
+// passes. Compare against the committed snapshot so a refresh that loses data
+// fails loudly instead of deploying it.
+let previous = null;
+try {
+  previous = JSON.parse(execFileSync("git", ["show", "HEAD:data/snapshot.json"], {
+    encoding: "utf8",
+    maxBuffer: 1 << 28,
+    stdio: ["ignore", "pipe", "ignore"],
+  }));
+} catch {
+  // No committed snapshot yet (fresh clone, or CI before the first commit).
+}
+
+if (previous) {
+  const drop = (now, before) => 1 - now / Math.max(1, before);
+  for (const [label, now, before] of [
+    ["verified repos", snapshot.repos.length, previous.repos?.length ?? 0],
+    ["canonical models", snapshot.origins.length, previous.origins?.length ?? 0],
+    ["recipes", snapshot.recipes.length, previous.recipes?.length ?? 0],
+    ["repos with metrics", measuredRepos, previous.repos?.filter((r) => r.metrics.confidence !== "none").length ?? 0],
+  ]) {
+    // New models arrive constantly, so only a fall is suspicious. A refresh that
+    // keeps 96% of the index is normal drift; one that keeps 80% is a crawl that
+    // lost half its pages to a rate limit.
+    const loss = drop(now, before);
+    check(
+      loss <= 0.04,
+      `${label} fell ${(loss * 100).toFixed(1)}% against the committed snapshot ` +
+        `(${before} -> ${now}). A crawl that hits HTTP 429 drops every repo whose ` +
+        `README failed. Check the crawl log before accepting this.`,
+    );
+  }
+}
 
 if (errors.length > 0) {
   console.error("Snapshot problems:");

@@ -75,6 +75,14 @@ async function main(): Promise<void> {
   console.log(
     `Discovered ${discovery.tagged.length} tagged + ${discovery.named.length} named = ${discovery.merged.length} unique; enriching ${models.length}`,
   );
+  // Anonymous Hub access is rate limited hard, and a 429 during the crawl drops
+  // every repo whose README failed, which silently shrinks the published index.
+  if (!token) {
+    console.warn(
+      "  ! HF_TOKEN is not set. The Hub will rate-limit this crawl and repos whose\n" +
+        "    README fails are dropped from the index. Set the HF_TOKEN secret.",
+    );
+  }
 
   let reused = 0;
   let fetched = 0;

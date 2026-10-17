@@ -221,6 +221,13 @@ domain, then deploy. No functions, no build plugins, no database.
 Because the cache is keyed by commit sha, a daily run only fetches cards whose
 repository actually changed.
 
+**Set the `HF_TOKEN` repository secret.** Without it the crawl is anonymous and
+the Hub rate-limits it; every repo whose README fetch returns 429 is dropped from
+the index, and the site quietly publishes less than yesterday. `npm run crawl`
+warns loudly when the token is absent, and `scripts/verify/snapshot.mjs` refuses
+a refresh that loses more than 4% of the index, repos, recipes or metrics against
+the committed snapshot.
+
 **Nothing needs a human.** A failed crawl stops the run and leaves the last good
 snapshot serving, rather than publishing a half-built one. A rejected `git push`
 is reported and retried by the next run instead of failing the job. `updatedAt`

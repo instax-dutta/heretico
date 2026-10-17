@@ -32,7 +32,7 @@ Scope: A working, tested static directory of Heretic models — crawl → parse 
 - [x] G6: The committed snapshot is schema-valid, internally consistent and covers real data at the required depth
   CHECK: node scripts/verify/snapshot.mjs
   EXPECT: SNAPSHOT VERIFIED
-  EVIDENCE: `SNAPSHOT VERIFIED` — 8209 indexed / 6188 verified repos, 1046 origins, 1016 recipes (886 verified / 130 unverified), 1265 direct conversions, 3869 repos with metrics, 62.7M downloads; Pareto/best-pick recomputed from published rows, every `inherited` pair matches the repo it cites, every verified artifact that published its own metrics is on a leaderboard row, and no unverified recipe holds a best pick
+  EVIDENCE: `SNAPSHOT VERIFIED` — 8209 indexed / 6188 verified repos, 1046 origins, 1016 recipes (886 verified / 130 unverified), 1265 direct conversions, 3869 repos with metrics, 62.7M downloads; Pareto/best-pick recomputed from published rows, every `inherited` pair matches the repo it cites, every verified artifact that published its own metrics is on a leaderboard row, no unverified recipe holds a best pick, and coverage has not fallen more than 4% against the committed snapshot (a crawl hitting HTTP 429 otherwise publishes a quietly smaller index)
 
 - [x] G7: A production static export serves every functional route with real snapshot content
   CHECK: node scripts/verify/app-smoke.mjs

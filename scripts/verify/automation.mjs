@@ -14,6 +14,12 @@ assert(
 );
 assert(/git add data\/snapshot\.json/.test(workflow), "workflow does not commit the snapshot");
 assert(/actions\/cache/.test(workflow), "workflow does not cache README parses");
+assert(
+  /steps\.crawl\.outcome/.test(workflow) && /continue-on-error/.test(workflow),
+  "workflow does not contain a failed crawl to the last good snapshot",
+);
+assert(/app-smoke/.test(workflow), "workflow does not serve the export before deploying");
+assert(/::error/.test(workflow), "workflow has no failure reporting");
 
 assert(existsSync("netlify.toml"), "missing netlify.toml");
 const netlify = readFileSync("netlify.toml", "utf8");
