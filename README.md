@@ -219,3 +219,21 @@ repository actually changed.
   verified, and only those appear on a page; the rest are counted, not linked.
 - Model weights and cards belong to their authors; this site only reads public
   metadata from the Hugging Face Hub.
+
+## Contributing
+
+Bug reports about a misread card or a wrong provenance link are the most useful
+thing you can send — include the repository id and the exact line from the card.
+
+Before opening a pull request, run the gates that cover what you touched
+(`node scripts/verify/static.mjs` for any code change, `snapshot.mjs` if you
+changed the pipeline, `suite.mjs tests/parse` for parser work). Parser changes
+need a verbatim card fixture in `tests/fixtures/cards/`; do not tidy an existing
+fixture, its mess is the regression surface. The per-directory `AGENTS.md` files
+record the contracts each area has to keep, and gate G10 checks them.
+
+## License
+
+[MIT](LICENSE) for the code. The indexed model weights and model cards remain
+the property of their authors and are only linked, never redistributed; the
+derived metadata in `data/snapshot.json` is published under the same MIT terms.

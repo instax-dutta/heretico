@@ -47,9 +47,16 @@ for (const needle of [
   "node scripts/verify/snapshot.mjs",
   "netlify.toml",
   "## Caveats",
+  "## License",
 ]) {
   assert(readme.includes(needle), `README.md is missing "${needle}"`);
 }
 
-console.log(`DOX tree: ${REQUIRED.length + 1} documents checked.`);
+// A public repository needs its license present, not just mentioned.
+assert(existsSync("LICENSE"), "missing LICENSE");
+const license = readFileSync("LICENSE", "utf8");
+assert(/^MIT License/m.test(license), "LICENSE is not MIT");
+assert(readme.includes("(LICENSE)"), "README does not link the LICENSE file");
+
+console.log(`DOX tree: ${REQUIRED.length + 2} documents checked.`);
 console.log("DOX VERIFIED");

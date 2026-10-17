@@ -106,6 +106,7 @@ ablation recipes, and ranks them by KL divergence and refusal rate.
 
 - `README.md` — what the directory is, how the pipeline works, commands, routes,
   scoring, verification, deploy and caveats
+- `LICENSE` — MIT for the code; model weights and cards stay with their authors
 - `PLAN.md` — design record: data model, route table, depth tree
 - `GATES.md` — acceptance gates with their measured evidence
 - `/methodology/` — scoring, confidence and provenance for site visitors
