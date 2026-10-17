@@ -1,0 +1,291 @@
+import { scoreOf } from "./scoring";
+import type { Origin, Recipe, Snapshot } from "./types";
+
+export type SortKey = "score" | "kl" | "refusals" | "downloads" | "params" | "newest" | "model";
+export type SortDir = "asc" | "desc";
+
+export interface LeaderboardQuery {
+  q: string;
+  family: string;
+  size: string;
+  format: string;
+  kind: string;
+  version: string;
+  minDownloads: number;
+  hasBenchmarks: boolean;
+  rankedOnly: boolean;
+  sort: SortKey;
+  dir: SortDir;
+  page: number;
+  perPage: number;
+}
+
+export const DEFAULT_QUERY: LeaderboardQuery = {
+  q: "",
+  family: "",
+  size: "",
+  format: "",
+  kind: "",
+  version: "",
+  minDownloads: 0,
+  hasBenchmarks: false,
+  rankedOnly: true,
+  sort: "score",
+  dir: "desc",
+  page: 1,
+  perPage: 50,
+};
+
+const SORTS: SortKey[] = ["score", "kl", "refusals", "downloads", "params", "newest", "model"];
+const DIRECTIONS: SortDir[] = ["asc", "desc"];
+
+function one(value: string | string[] | undefined): string {
+  if (Array.isArray(value)) return value[0] ?? "";
+  return value ?? "";
+}
+
+export function parseQuery(
+  params: Record<string, string | string[] | undefined> | URLSearchParams,
+): LeaderboardQuery {
+  const get = (key: string): string => {
+    if (params instanceof URLSearchParams) return params.get(key) ?? "";
+    return one(params[key]);
+  };
+
+  const sortRaw = get("sort").toLowerCase();
+  const sort = (SORTS as string[]).includes(sortRaw) ? (sortRaw as SortKey) : DEFAULT_QUERY.sort;
+  const dirRaw = get("dir").toLowerCase();
+  const dir = (DIRECTIONS as string[]).includes(dirRaw) ? (dirRaw as SortDir) : defaultDir(sort);
+  const page = Math.max(1, Math.floor(Number(get("page")) || 1));
+  const perPageRaw = Math.floor(Number(get("perPage")) || DEFAULT_QUERY.perPage);
+  const perPage = [25, 50, 100, 200].includes(perPageRaw) ? perPageRaw : DEFAULT_QUERY.perPage;
+  const minDownloads = Math.max(0, Math.floor(Number(get("minDownloads")) || 0));
+
+  return {
+    q: get("q").trim().slice(0, 120),
+    family: get("family").trim(),
+    size: get("size").trim(),
+    format: get("format").trim().toLowerCase(),
+    kind: get("kind").trim(),
+    version: get("version").trim(),
+    minDownloads,
+    hasBenchmarks: get("bench") === "1",
+    rankedOnly: get("ranked") !== "0",
+    sort,
+    dir,
+    page,
+    perPage,
+  };
+}
+
+export function defaultDir(sort: SortKey): SortDir {
+  return sort === "kl" || sort === "refusals" || sort === "model" || sort === "params"
+    ? "asc"
+    : "desc";
+}
+
+export interface LeaderboardRow {
+  recipe: Recipe;
+  origin: Origin;
+  /** Global rank among ranked recipes (1-based), null when unranked. */
+  rank: number | null;
+  /** Rank within the origin's family. */
+  familyRank: number | null;
+}
+
+export function buildLeaderboardRows(snapshot: Snapshot): LeaderboardRow[] {
+  const originById = new Map(snapshot.origins.map((origin) => [origin.id, origin]));
+  const rows: LeaderboardRow[] = [];
+
+  for (const recipe of snapshot.recipes) {
+    const origin = originById.get(recipe.originId);
+    if (!origin) continue;
+    rows.push({ recipe, origin, rank: null, familyRank: null });
+  }
+
+  const ranked = rows
+    .filter((row) => row.recipe.score > 0)
+    .sort((a, b) => b.recipe.score - a.recipe.score || a.recipe.id.localeCompare(b.recipe.id));
+  ranked.forEach((row, index) => {
+    row.rank = index + 1;
+  });
+
+  const familyCounts = new Map<string, number>();
+  const familySorted = [...ranked].sort(
+    (a, b) =>
+      a.origin.familySlug.localeCompare(b.origin.familySlug) ||
+      b.recipe.score - a.recipe.score ||
+      a.recipe.id.localeCompare(b.recipe.id),
+  );
+  for (const row of familySorted) {
+    const next = (familyCounts.get(row.origin.familySlug) ?? 0) + 1;
+    familyCounts.set(row.origin.familySlug, next);
+    row.familyRank = next;
+  }
+
+  return rows;
+}
+
+export function matchesQuery(row: LeaderboardRow, query: LeaderboardQuery): boolean {
+  if (query.rankedOnly && row.recipe.score <= 0) return false;
+  if (query.family && row.origin.familySlug !== query.family) return false;
+  if (query.size && row.origin.sizeClass !== query.size) return false;
+  if (query.format && !row.recipe.formats.includes(query.format)) return false;
+  if (query.kind && row.recipe.kind !== query.kind) return false;
+  if (query.version && row.recipe.hereticVersion !== query.version) return false;
+  if (row.recipe.downloadsAllTime < query.minDownloads) return false;
+  if (query.hasBenchmarks && row.recipe.benchmarks.length === 0) return false;
+
+  if (query.q) {
+    const needle = query.q.toLowerCase();
+    const haystack = [
+      row.origin.id,
+      row.origin.name,
+      row.origin.displayName,
+      row.recipe.author,
+      row.recipe.repoIds.join(" "),
+    ]
+      .join(" ")
+      .toLowerCase();
+    if (!haystack.includes(needle)) return false;
+  }
+
+  return true;
+}
+
+/** Ascending comparator; direction is applied by the caller. */
+function compareRows(a: LeaderboardRow, b: LeaderboardRow, sort: SortKey): number {
+  switch (sort) {
+    case "score":
+      return (
+        a.recipe.score - b.recipe.score ||
+        b.recipe.kl - a.recipe.kl ||
+        b.recipe.refusalRate - a.recipe.refusalRate
+      );
+    case "kl":
+      return a.recipe.kl - b.recipe.kl || b.recipe.score - a.recipe.score;
+    case "refusals":
+      return a.recipe.refusalRate - b.recipe.refusalRate || a.recipe.kl - b.recipe.kl;
+    case "downloads":
+      return a.recipe.downloadsAllTime - b.recipe.downloadsAllTime;
+    case "params":
+      return (
+        (a.origin.paramsB ?? Number.POSITIVE_INFINITY) -
+        (b.origin.paramsB ?? Number.POSITIVE_INFINITY)
+      );
+    case "newest":
+      return a.recipe.lastModified.localeCompare(b.recipe.lastModified);
+    case "model":
+      return (
+        a.origin.displayName.localeCompare(b.origin.displayName) ||
+        a.origin.id.localeCompare(b.origin.id)
+      );
+  }
+}
+
+export interface QueryResult {
+  rows: LeaderboardRow[];
+  total: number;
+  page: number;
+  pageCount: number;
+  perPage: number;
+}
+
+/** Filter, sort and paginate. Unranked rows always sort after ranked ones. */
+export function runQuery(rows: LeaderboardRow[], query: LeaderboardQuery): QueryResult {
+  const filtered = rows.filter((row) => matchesQuery(row, query));
+  const direction = query.dir === "asc" ? 1 : -1;
+
+  filtered.sort((a, b) => {
+    const aRanked = a.recipe.score > 0;
+    const bRanked = b.recipe.score > 0;
+    if (aRanked !== bRanked) return aRanked ? -1 : 1;
+    const primary = compareRows(a, b, query.sort);
+    if (primary !== 0) return primary * direction;
+    return a.recipe.id.localeCompare(b.recipe.id);
+  });
+
+  const total = filtered.length;
+  const pageCount = Math.max(1, Math.ceil(total / query.perPage));
+  const page = Math.min(Math.max(1, query.page), pageCount);
+  const start = (page - 1) * query.perPage;
+
+  return {
+    rows: filtered.slice(start, start + query.perPage),
+    total,
+    page,
+    pageCount,
+    perPage: query.perPage,
+  };
+}
+
+export function queryToSearchParams(query: LeaderboardQuery): URLSearchParams {
+  const params = new URLSearchParams();
+  if (query.q) params.set("q", query.q);
+  if (query.family) params.set("family", query.family);
+  if (query.size) params.set("size", query.size);
+  if (query.format) params.set("format", query.format);
+  if (query.kind) params.set("kind", query.kind);
+  if (query.version) params.set("version", query.version);
+  if (query.minDownloads > 0) params.set("minDownloads", String(query.minDownloads));
+  if (query.hasBenchmarks) params.set("bench", "1");
+  if (!query.rankedOnly) params.set("ranked", "0");
+  if (query.sort !== DEFAULT_QUERY.sort) params.set("sort", query.sort);
+  if (query.dir !== defaultDir(query.sort)) params.set("dir", query.dir);
+  if (query.page > 1) params.set("page", String(query.page));
+  if (query.perPage !== DEFAULT_QUERY.perPage) params.set("perPage", String(query.perPage));
+  return params;
+}
+
+/** Rank an origin's own recipes, best first (used on model pages). */
+export function recipesForOrigin(snapshot: Snapshot, originId: string): Recipe[] {
+  return snapshot.recipes
+    .filter((recipe) => recipe.originId === originId)
+    .sort((a, b) => {
+      const aScore = scoreOf({
+        id: a.id,
+        kl: a.kl,
+        refusals: a.refusals,
+        refusalTotal: a.refusalTotal,
+        confidence: a.confidence,
+        downloadsAllTime: a.downloadsAllTime,
+        lastModified: a.lastModified,
+      });
+      const bScore = scoreOf({
+        id: b.id,
+        kl: b.kl,
+        refusals: b.refusals,
+        refusalTotal: b.refusalTotal,
+        confidence: b.confidence,
+        downloadsAllTime: b.downloadsAllTime,
+        lastModified: b.lastModified,
+      });
+      if (aScore && bScore && bScore.quality !== aScore.quality) return bScore.quality - aScore.quality;
+      if (Boolean(aScore) !== Boolean(bScore)) return aScore ? -1 : 1;
+      return b.downloadsAllTime - a.downloadsAllTime || a.id.localeCompare(b.id);
+    });
+}
+
+export function searchOrigins(origins: Origin[], text: string, limit = 30): Origin[] {
+  const needle = text.trim().toLowerCase();
+  if (!needle) return [];
+  const scored = origins
+    .map((origin) => {
+      const name = origin.name.toLowerCase();
+      const id = origin.id.toLowerCase();
+      let score = 0;
+      if (name === needle || id === needle) score = 100;
+      else if (name.startsWith(needle)) score = 50;
+      else if (name.includes(needle)) score = 20;
+      else if (id.includes(needle)) score = 10;
+      return { origin, score };
+    })
+    .filter((entry) => entry.score > 0)
+    .sort(
+      (a, b) =>
+        b.score - a.score ||
+        (b.origin.bestScore ?? 0) - (a.origin.bestScore ?? 0) ||
+        a.origin.id.localeCompare(b.origin.id),
+    );
+  return scored.slice(0, limit).map((entry) => entry.origin);
+}

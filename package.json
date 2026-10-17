@@ -3,8 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "sync": "tsx scripts/sync-public.ts",
+    "dev": "npm run sync && next dev",
+    "build": "npm run sync && next build",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",

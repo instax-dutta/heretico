@@ -97,7 +97,19 @@ export interface RawRepo {
   license: string | null;
 }
 
-export interface RepoRecord extends RawRepo {
+export interface RepoRecord {
+  id: string;
+  author: string;
+  createdAt: string;
+  lastModified: string;
+  downloads30d: number;
+  downloadsAllTime: number;
+  likes: number;
+  gated: boolean;
+  pipelineTag: string | null;
+  libraryName: string | null;
+  license: string | null;
+  declaredBaseModels: string[];
   kind: RepoKind;
   /** Canonical upstream model this artifact ultimately descends from. */
   originId: string | null;

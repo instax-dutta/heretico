@@ -48,3 +48,9 @@ next-env.d.ts
 .unlazy/
 .claude/settings.local.json
 .unlazy-hook-state.json
+
+# crawl logs
+/data/*.log
+
+# generated browser copy of the snapshot
+/public/data/
