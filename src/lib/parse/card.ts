@@ -469,9 +469,11 @@ export function parseCard(markdown: string, options: ParseOptions = {}): ParsedC
   // classifier resolves quant-vs-direct from the base chain.
   const isHereticConversion =
     referencesHereticProject &&
-    /(decensored version of|abliterated (?:version|build) of|abliteration method|(?:made|generated|created|built|produced|abliter\w*|decensor\w*|uncensor\w*)[^.\n]{0,40}(?:using|with|by)\s+\[?heretic)/i.test(
+    (/(decensored version of|abliterated (?:version|build) of|abliteration method|(?:made|generated|created|built|produced|abliter\w*|decensor\w*|uncensor\w*)[^.\n]{0,40}(?:using|with|by)\s+\[?heretic)/i.test(
       body,
-    );
+    ) ||
+      // "an [abliterated](https://github.com/p-e-w/heretic) MiniCPM-V"
+      /\[(?:abliterated|decensored|uncensored|de-censored)\]\(https?:\/\/github\.com\/p-e-w\/heretic\)/i.test(body));
 
   const versionMatch = body.match(/heretic[^0-9\n]{0,40}?v?(\d+\.\d+(?:\.\d+)?)/i);
   const metrics = emptyMetrics();
