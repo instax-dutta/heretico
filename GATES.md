@@ -7,7 +7,7 @@ Scope: A working, tested static directory of Heretic models — crawl → parse 
 - [x] G1: The codebase typechecks and lints without errors
   CHECK: node scripts/verify/static.mjs
   EXPECT: STATIC CHECKS PASSED
-  EVIDENCE: `STATIC CHECKS PASSED` (tsc --noEmit + eslint, 0 errors)
+  EVIDENCE: `STATIC CHECKS PASSED` (next typegen + tsc --noEmit + eslint, 0 errors); re-run from a fresh clone of the public repo, where `.next/` does not exist yet
 
 - [x] G2: Card parsing extracts base model, Heretic version, KL and refusals from the committed real-world fixtures
   CHECK: node scripts/verify/suite.mjs tests/parse
@@ -47,12 +47,12 @@ Scope: A working, tested static directory of Heretic models — crawl → parse 
 - [x] G9: Freshness automation is wired: incremental crawl skips unchanged repos and the scheduled workflow rebuilds and validates the snapshot
   CHECK: node scripts/verify/automation.mjs
   EXPECT: AUTOMATION VERIFIED
-  EVIDENCE: `AUTOMATION VERIFIED` — workflow (schedule, crawl, snapshot, verify, commit, README cache), netlify.toml (out/, npm run build), 4 incremental-cache tests
+  EVIDENCE: `AUTOMATION VERIFIED` — workflow (schedule, tests, static checks, crawl, snapshot, verify, commit, README cache), netlify.toml (out/, npm run build), 4 incremental-cache tests
 
 - [x] G10: The DOX tree documents every durable boundary and is internally consistent
   CHECK: node scripts/verify/dox.mjs
   EXPECT: DOX VERIFIED
-  EVIDENCE: `DOX VERIFIED` — 10 AGENTS.md documents checked, plus README.md assertions that the documented commands, gate and deploy config still exist
+  EVIDENCE: `DOX VERIFIED` — 10 AGENTS.md documents checked, plus README.md assertions that the documented commands, gate and deploy config still exist, and LICENSE present, MIT and linked from the README
 
 - [x] G11: The top-20 rows of the real leaderboard were read against their source cards and rank order is plausible
   EVIDENCE: read the top 20 rows of `data/snapshot.json` and fetched 9 of their live cards. Verbatim matches: ThalisAI/Qwen3-32B-heretic (0/100, KL 0.0000), krthkyadtya/Qwen2.5-72B-Instruct-heretic (0/66, 0.0035), anasali4151/llama3.1-heretic-unsensored (0/100, 0.0082), trohrbaugh/ZAYA1-74B-preview-heretic-ara (0/100, 0.0095), grayarea/Magidonia-24B-v4.3-heretic-v1.2 (0/108, 0.0229), Echo9Zulu/Nanbeige4.1-3B-Heretic (0.0003), trohrbaugh/gemma-4-E4B-it-heretic-ara (0.0126), sunkencity/Llama-xLAM-2-8b-fc-r-blasphemer (KL 0.00, 2/100), 0bserverx/Qwen3.8-27B-Heretic-Abliterated-Uncensored-GGUF (row "RVN (this repo)" 0–1/100, 0.0085 — a range is read as its worst case and reported as 1/100). Both card layouts are handled: heretic-first columns (anasali4151) and original-first columns (krthkyadtya). Rank order tracks the metric: rank 1–20 sit at KL ≤ 0.023 and refusal rate ≤ 0.02, and the worst rows (e.g. TheDrummer/Behemoth-123B-v1.1) are the high-KL/high-refusal ones. The single card claiming both zero KL and zero refusals (Qwen/Qwen3-32B) is flagged `implausible` and labelled in the table rather than silently ranked first.
