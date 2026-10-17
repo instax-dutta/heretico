@@ -8,6 +8,10 @@ assert(/schedule:/.test(workflow) && /cron:/.test(workflow), "workflow has no sc
 assert(/npm run crawl/.test(workflow), "workflow does not run the crawl");
 assert(/npm run snapshot/.test(workflow), "workflow does not rebuild the snapshot");
 assert(/node scripts\/verify\/snapshot\.mjs/.test(workflow), "workflow does not validate the snapshot");
+assert(
+  /node scripts\/verify\/static\.mjs/.test(workflow),
+  "workflow does not run the static checks (typegen + tsc + lint)",
+);
 assert(/git add data\/snapshot\.json/.test(workflow), "workflow does not commit the snapshot");
 assert(/actions\/cache/.test(workflow), "workflow does not cache README parses");
 

@@ -39,6 +39,9 @@ jobs:
       - name: Unit and integration tests
         run: npm test
 
+      - name: Static checks
+        run: node scripts/verify/static.mjs
+
       - name: Crawl Hugging Face
         run: npm run crawl
         env:

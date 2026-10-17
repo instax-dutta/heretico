@@ -88,7 +88,7 @@ Commands:
 | `npm run snapshot` | `data/raw.json` → `data/snapshot.json` (offline, seconds) |
 | `npm run refresh` | `crawl` then `snapshot` |
 | `npm test` / `npm run test:watch` | Vitest |
-| `npm run typecheck` / `npm run lint` | `tsc --noEmit` / ESLint |
+| `npm run typecheck` / `npm run lint` | `next typegen` + `tsc --noEmit` / ESLint |
 
 Environment:
 
@@ -153,7 +153,7 @@ results; the oracles are:
 
 | Gate | Command | Checks |
 | :-- | :-- | :-- |
-| G1 | `node scripts/verify/static.mjs` | typecheck + lint clean |
+| G1 | `node scripts/verify/static.mjs` | typegen + typecheck + lint clean |
 | G2–G5 | `node scripts/verify/suite.mjs <tests/dir>` | per-module Vitest suites |
 | G6 | `node scripts/verify/snapshot.mjs` | snapshot schema, invariant and depth checks |
 | G7 | `node scripts/verify/app-smoke.mjs` | builds and serves `out/`, asserts real content on every route |

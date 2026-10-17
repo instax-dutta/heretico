@@ -27,7 +27,7 @@ and pure logic for parsing, classification, scoring and querying.
 
 ## Verification
 
-- `npx tsc --noEmit`
+- `npm run typecheck` (`next typegen`, then `tsc --noEmit`)
 - `npx vitest run`
 - `node scripts/verify/static.mjs`
 
