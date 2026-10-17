@@ -1,0 +1,66 @@
+name: Refresh Heretic index
+
+on:
+  schedule:
+    # Daily, off-peak UTC. GitHub may delay scheduled runs under load.
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-index
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Parsed cards only (~2 MB), so daily caches are cheap. This is what makes
+      # the crawl incremental: unchanged repos are never fetched again.
+      - uses: actions/cache@v4
+        with:
+          path: data/cache
+          key: heretic-cache-${{ github.run_id }}
+          restore-keys: |
+            heretic-cache-
+
+      - name: Unit and integration tests
+        run: npm test
+
+      - name: Crawl Hugging Face
+        run: npm run crawl
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+
+      - name: Build snapshot
+        run: npm run snapshot
+
+      - name: Validate snapshot
+        run: node scripts/verify/snapshot.mjs
+
+      - name: Build the site
+        run: npm run build
+
+      - name: Commit refreshed snapshot
+        run: |
+          git config user.name "heretic-index-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data/snapshot.json
+          if git diff --staged --quiet; then
+            echo "Snapshot unchanged"
+          else
+            git commit -m "Refresh Heretic snapshot"
+            git push
+          fi

@@ -1,69 +1,116 @@
-import Image from "next/image";
+import type { Metadata } from "next";
+import Link from "next/link";
+import { RecipeTable } from "@/components/RecipeTable";
+import { Card, Stat } from "@/components/ui";
+import { getSnapshot, getTopRows } from "@/lib/dataset";
+import { familyHref, formatCompact, formatDate } from "@/lib/format";
 
-export default function Home() {
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
+
+export default function HomePage() {
+  const snapshot = getSnapshot();
+  const top = getTopRows(10);
+  const families = [...snapshot.families].sort((a, b) => b.originCount - a.originCount).slice(0, 12);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <div className="flex flex-col gap-10">
+      <section className="flex flex-col gap-4">
+        <h1 className="max-w-3xl text-3xl font-semibold tracking-tight sm:text-4xl">
+          Find the best Heretic version of any open model.
+        </h1>
+        <p className="max-w-2xl text-zinc-600 dark:text-zinc-400">
+          Every Heretic (abliterated) conversion on Hugging Face, resolved back to the
+          model it came from and ranked by the two numbers that actually matter: how
+          little the model drifted, and how few refusals remain.
+        </p>
+        <form action="/models/" method="get" className="flex max-w-xl gap-2">
+          <input
+            type="search"
+            name="q"
+            placeholder="Qwen3-4B, gemma-3-12b-it, gpt-oss-20b…"
+            className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-500 dark:border-zinc-700 dark:bg-zinc-900"
+            aria-label="Search for a model"
+          />
+          <button
+            type="submit"
+            className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+          >
+            Find
+          </button>
+        </form>
+      </section>
+
+      <section className="grid grid-cols-2 gap-6 rounded-lg border border-zinc-200 bg-white p-5 sm:grid-cols-4 dark:border-zinc-800 dark:bg-zinc-950">
+        <Stat label="Models indexed" value={formatCompact(snapshot.totals.origins)} hint="canonical base models" />
+        <Stat
+          label="Ranked conversions"
+          value={formatCompact(snapshot.totals.rankedRecipes)}
+          hint={`${formatCompact(snapshot.totals.recipes)} with published metrics`}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+        <Stat label="Heretic repos" value={formatCompact(snapshot.totals.verifiedRepos)} hint={`${formatCompact(snapshot.totals.repos)} discovered`} />
+        <Stat
+          label="Downloads"
+          value={formatCompact(snapshot.totals.downloadsAllTime)}
+          hint={`updated ${formatDate(snapshot.updatedAt)}`}
+        />
+      </section>
+
+      <section>
+        <div className="mb-3 flex items-end justify-between">
+          <div>
+            <h2 className="text-xl font-semibold tracking-tight">Cleanest conversions</h2>
+            <p className="text-sm text-zinc-500">
+              Highest score across all families. Filter by size and family on the leaderboard.
+            </p>
+          </div>
+          <Link className="text-sm underline" href="/leaderboard/">
+            Full leaderboard
+          </Link>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <Card className="p-0">
+          <div className="px-4 py-2">
+            <RecipeTable rows={top} />
+          </div>
+        </Card>
+      </section>
+
+      <section>
+        <div className="mb-3 flex items-end justify-between">
+          <h2 className="text-xl font-semibold tracking-tight">Browse by family</h2>
+          <Link className="text-sm underline" href="/families/">
+            All families
+          </Link>
         </div>
-      </main>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          {families.map((family) => (
+            <Link
+              key={family.slug}
+              href={familyHref(family.slug)}
+              className="rounded-lg border border-zinc-200 bg-white p-4 hover:border-zinc-400 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:border-zinc-600"
+            >
+              <div className="font-medium">{family.label}</div>
+              <div className="text-xs text-zinc-500">
+                {family.originCount} models · {family.rankedRecipeCount} ranked
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <section className="rounded-lg border border-zinc-200 bg-white p-5 text-sm text-zinc-600 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400">
+        <h2 className="mb-2 font-semibold text-zinc-900 dark:text-zinc-100">How to read this</h2>
+        <p>
+          <strong>KL</strong> measures how far the abliterated model drifted from the original —
+          lower is better. <strong>Refusals</strong> are counted on a harmful-prompt set by the
+          publisher — lower is better. The <strong>score</strong> weights both equally.{" "}
+          <Link className="underline" href="/methodology/">
+            Full methodology
+          </Link>
+          .
+        </p>
+      </section>
     </div>
   );
 }

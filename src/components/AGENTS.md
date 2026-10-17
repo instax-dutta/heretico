@@ -1,0 +1,34 @@
+# src/components
+
+## Purpose
+
+Shared UI: tables, badges and the two interactive explorers (leaderboard and
+model directory) that filter the snapshot in the browser.
+
+## Ownership
+
+- `ui.tsx` — primitives (Card, Stat, Badge, ScorePill, Breadcrumbs)
+- `RecipeTable.tsx` — ranked table, safe in server and client trees
+- `LeaderboardExplorer.tsx` — client filters, URL state, pagination
+- `ModelExplorer.tsx` — client model search
+
+## Local Contracts
+
+- Client components start with `"use client"` and must not import
+  `lib/dataset.ts` (Node fs).
+- They receive prerendered data as props so the first paint has real content,
+  then load `/data/snapshot.json` for the full index.
+- URL state is written with `history.replaceState`; do not use `useSearchParams`
+  (it forces a Suspense boundary that static export does not need).
+- Components never compute scores themselves; use `lib/scoring` and `lib/query`.
+
+## Work Guidance
+
+- Keep controls accessible: labels, `type="search"`, disabled pagination buttons.
+- Table columns must match the definitions on the methodology page.
+- Do not add charting or design-system dependencies yet.
+
+## Verification
+
+- `npm run build`
+- `node scripts/verify/app-smoke.mjs`

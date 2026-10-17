@@ -1,0 +1,127 @@
+import Link from "next/link";
+import {
+  formatCompact,
+  formatParams,
+  formatPercent,
+  formatKl,
+  huggingFaceUrl,
+  originHref,
+  repoName,
+} from "@/lib/format";
+import type { LeaderboardRow } from "@/lib/query";
+import { Badge, ScorePill } from "./ui";
+
+export function RecipeTable({
+  rows,
+  showRank = true,
+  showOrigin = true,
+  emptyLabel = "Nothing matches these filters yet.",
+}: {
+  rows: LeaderboardRow[];
+  showRank?: boolean;
+  showOrigin?: boolean;
+  emptyLabel?: string;
+}) {
+  if (rows.length === 0) {
+    return <p className="py-10 text-center text-sm text-zinc-500">{emptyLabel}</p>;
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[720px] border-collapse text-sm">
+        <thead>
+          <tr className="border-b border-zinc-200 text-left text-xs uppercase tracking-wide text-zinc-500 dark:border-zinc-800">
+            {showRank ? <th className="w-12 py-2 pr-2 font-medium">#</th> : null}
+            {showOrigin ? <th className="py-2 pr-3 font-medium">Model</th> : null}
+            <th className="py-2 pr-3 font-medium">Author</th>
+            <th className="py-2 pr-3 text-right font-medium">Params</th>
+            <th className="py-2 pr-3 text-right font-medium" title="KL divergence from the original model">
+              KL
+            </th>
+            <th className="py-2 pr-3 text-right font-medium">Refusals</th>
+            <th className="py-2 pr-3 text-right font-medium">Score</th>
+            <th className="py-2 pr-3 font-medium">Evidence</th>
+            <th className="py-2 text-right font-medium">Downloads</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => {
+            const { recipe, origin } = row;
+            return (
+              <tr
+                key={recipe.id}
+                className="border-b border-zinc-100 align-top last:border-0 dark:border-zinc-900"
+              >
+                {showRank ? (
+                  <td className="py-2 pr-2 tabular-nums text-zinc-500">
+                    {row.rank ?? "—"}
+                  </td>
+                ) : null}
+                {showOrigin ? (
+                  <td className="py-2 pr-3">
+                    <Link
+                      href={originHref(origin.id)}
+                      className="font-medium hover:underline"
+                      title={origin.id}
+                    >
+                      {origin.displayName}
+                    </Link>
+                    <div className="text-xs text-zinc-500">{origin.owner}</div>
+                  </td>
+                ) : null}
+                <td className="py-2 pr-3">
+                  <a
+                    className="hover:underline"
+                    href={huggingFaceUrl(recipe.bestRepoId)}
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    {recipe.author}
+                  </a>
+                </td>
+                <td className="py-2 pr-3 text-right tabular-nums">
+                  {formatParams(origin.paramsB, origin.paramsActiveB, origin.moe)}
+                </td>
+                <td className="py-2 pr-3 text-right tabular-nums">{formatKl(recipe.kl)}</td>
+                <td className="py-2 pr-3 text-right tabular-nums">
+                  {recipe.refusals}/{recipe.refusalTotal}
+                  <span className="ml-1 text-xs text-zinc-500">
+                    {formatPercent(recipe.refusalRate, 0)}
+                  </span>
+                </td>
+                <td className="py-2 pr-3 text-right">
+                  <ScorePill score={recipe.score} />
+                </td>
+                <td className="py-2 pr-3">
+                  <div className="flex flex-wrap gap-1">
+                    {recipe.bestPick ? <Badge tone="good">Best</Badge> : null}
+                    {recipe.implausible ? (
+                      <Badge tone="warn" title="The card reports zero KL and zero refusals, which cannot both be measured for an abliterated model">
+                        implausible
+                      </Badge>
+                    ) : null}
+                    {recipe.pareto ? (
+                      <Badge tone="accent" title="No other version of this model is better on both KL and refusals">
+                        Pareto
+                      </Badge>
+                    ) : null}
+                    {recipe.formats.slice(0, 3).map((format) => (
+                      <Badge key={format}>{format.toUpperCase()}</Badge>
+                    ))}
+                  </div>
+                </td>
+                <td className="py-2 text-right tabular-nums text-zinc-600 dark:text-zinc-400">
+                  {formatCompact(recipe.downloadsAllTime)}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+export function RecipeLink({ id }: { id: string }) {
+  return <span className="font-mono text-xs">{repoName(id)}</span>;
+}
