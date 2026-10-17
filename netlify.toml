@@ -6,11 +6,21 @@
   NODE_VERSION = "22"
   NPM_FLAGS = "--no-audit --no-fund"
 
+# HTML is rebuilt on every snapshot commit, so revalidate rather than serve a
+# stale leaderboard to a crawler or an assistant.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+# The browser index changes once a day. An hour of caching would let an
+# assistant answer from yesterday's ranking, so keep it short and revalidate.
 [[headers]]
   for = "/data/*"
   [headers.values]
-    Cache-Control = "public, max-age=3600"
+    Cache-Control = "public, max-age=300, must-revalidate"
 
+# Content-addressed build output: never changes for a given URL.
 [[headers]]
   for = "/_next/static/*"
   [headers.values]

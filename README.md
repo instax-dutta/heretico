@@ -88,9 +88,9 @@ Commands:
 | :-- | :-- |
 | `npm run dev` | `sync` then `next dev` |
 | `npm run build` | `sync` then `next build` → static export in `out/` |
-| `npm run sync` | writes `public/data/index.json` from `data/snapshot.json` |
+| `npm run sync` | writes `public/data/index.json` and `public/llms.txt` from `data/snapshot.json` |
 | `npm run crawl` | discovery + README enrichment → `data/raw.json` (+ `data/cache/cards/`) |
-| `npm run snapshot` | `data/raw.json` → `data/snapshot.json` (offline, seconds) |
+| `npm run snapshot` | `data/raw.json` → `data/snapshot.json` + `llms.txt` (offline, seconds) |
 | `npm run refresh` | `crawl` then `snapshot` |
 | `npm test` / `npm run test:watch` | Vitest |
 | `npm run typecheck` / `npm run lint` | `next typegen` + `tsc --noEmit` / ESLint |
@@ -211,17 +211,27 @@ domain, then deploy. No functions, no build plugins, no database.
 
 `.github/workflows/refresh.yml` runs daily at 03:17 UTC (and on demand):
 
-1. restore `data/cache/cards/` via `actions/cache`,
-2. run the suites,
+1. restore `data/cache/` via `actions/cache`,
+2. run the suites and static checks,
 3. crawl with `HF_TOKEN` (set it as a repository secret for higher rate limits),
 4. rebuild and validate the snapshot,
-5. build the site,
+5. build the site and serve the export to check it,
 6. commit `data/snapshot.json` if the data changed — Netlify then redeploys.
-   `updatedAt` alone does not count as a change, so a day with no new or edited
-   repository skips the commit and the redeploy.
 
 Because the cache is keyed by commit sha, a daily run only fetches cards whose
 repository actually changed.
+
+**Nothing needs a human.** A failed crawl stops the run and leaves the last good
+snapshot serving, rather than publishing a half-built one. A rejected `git push`
+is reported and retried by the next run instead of failing the job. `updatedAt`
+alone does not count as a change, so a day with no new or edited repository skips
+the commit and the redeploy entirely. Two further jobs report a failed refresh and
+warn when the committed snapshot goes stale, so silence is never the failure
+signal.
+
+Every generated artefact is derived from the snapshot, including `llms.txt` and
+the JSON-LD `dateModified` on each model page, so nothing describing the data is
+written by hand and left to rot.
 
 ---
 

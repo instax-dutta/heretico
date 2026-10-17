@@ -3,6 +3,9 @@
 An index of Heretic (abliterated) models published on Hugging Face, ranked by
 how little the weights drifted (KL divergence) and how few refusals remain.
 
+Snapshot of 2026-10-17: 1,046 base models, 1,016 measured ablations
+(886 verified, 130 unverified) from 6,188 repositories.
+
 ## What this is
 
 One row is one **ablation attempt**, not one repository. A conversion published
@@ -21,7 +24,7 @@ count, publisher and the exact card text the numbers came from.
 - `/leaderboard/` — every ranked conversion, filterable by family, size, format
 - `/models/` — all base models, searchable
 - `/models/<owner>/<name>/` — every Heretic version of one model, best first
-- `/families/` — by family (Qwen, Gemma, Llama, Mistral, GPT-OSS …)
+- `/families/` — by family (269 families)
 - `/methodology/` — scoring, confidence, provenance, limits
 
 ## Scoring
@@ -38,11 +41,12 @@ and refresh dates.
 Every metric is **self-reported by the publisher**. This site never re-runs an
 evaluation. Three things follow:
 
-- **verified** — the repository ships real model weights and reports a KL an
-  abliteration can physically produce.
-- **unverified** — no corroboration beyond the card itself. These still rank but
-  never take rank 1, because a fabricated card claiming zero refusals would
-  otherwise top the board.
+- **verified** (886 rows) — the repository ships real model weights and
+  reports a KL an abliteration can physically produce.
+- **unverified** (130 rows) — no corroboration beyond the card itself.
+  These still rank but never take rank 1, because a fabricated card claiming zero
+  refusals would otherwise top the board. A model whose conversions are all
+  unverified has no best version at all.
 - **inherited** — a quant or derivative with no numbers of its own, showing its
   parent conversion's values and linking to that source.
 
@@ -54,7 +58,7 @@ differences matter, 0.01 does not.
 ## Machine-readable
 
 - `/data/index.json` — every recipe, origin and family
-- `/sitemap.xml` — all canonical URLs
+- `/sitemap.xml` — all canonical URLs (5,189 URLs)
 - Model pages carry JSON-LD `Dataset` records
 
 Data refreshes daily from the public Hub. The index is independent and not

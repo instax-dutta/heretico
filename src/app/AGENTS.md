@@ -22,6 +22,10 @@ plus one JSON index for browser-side filtering.
 - `/repo/` generates a page only for artifacts that published metrics
   (`getMeasuredRepos`). `sitemap.ts` and the model artifact table must agree, or
   links 404. Model pages also emit JSON-LD for assistants.
+- Every generated path is **lowercase** (`pathSegments`). Netlify lowercases
+  what it serves, so a mixed-case directory is reachable only via a 301 and its
+  canonical points at a redirect. Lookups in `lib/dataset.ts` must fold case to
+  match, for `getOrigin`, `getRepo` and both `*ForOrigin` filters.
 - Server pages must not read `searchParams`; filtering is a client concern.
 - Route params are promises in this Next version: `const { id } = await params`.
 - Metadata comes from `generateMetadata`/`metadata`, with a canonical path.

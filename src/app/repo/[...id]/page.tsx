@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Badge, Breadcrumbs, Card } from "@/components/ui";
-import { getMeasuredRepos, getOrigin, getRepo } from "@/lib/dataset";
+import { getMeasuredRepos, getOrigin, getRepo, pathSegments } from "@/lib/dataset";
 import {
   formatCompact,
   formatDate,
@@ -18,7 +18,7 @@ export const dynamicParams = false;
 
 export function generateStaticParams(): { id: string[] }[] {
   // Only artifacts that published numbers get a page. See `getMeasuredRepos`.
-  return getMeasuredRepos().map((repo) => ({ id: repo.id.split("/") }));
+  return getMeasuredRepos().map((repo) => ({ id: pathSegments(repo.id) }));
 }
 
 export async function generateMetadata({ params }: PageProps<"/repo/[...id]">): Promise<Metadata> {

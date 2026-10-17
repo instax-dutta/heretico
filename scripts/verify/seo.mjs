@@ -51,7 +51,7 @@ const rankedOrigin = snapshot.origins.find((origin) => origin.bestRecipeId);
 const titles = [
   checkPage("index.html", "home"),
   checkPage("leaderboard/index.html", "leaderboard"),
-  checkPage(`models/${rankedOrigin.id}/index.html`, "model"),
+  checkPage(`models/${rankedOrigin.id.toLowerCase()}/index.html`, "model"),
   checkPage(`families/${snapshot.families[0].slug}/index.html`, "family"),
   checkPage("methodology/index.html", "methodology"),
 ];

@@ -2,13 +2,30 @@ name: Refresh Heretic index
 
 on:
   schedule:
-    # Daily, off-peak UTC. GitHub may delay scheduled runs under load.
+    # Daily, off-peak UTC. GitHub disables scheduled workflows in a public
+    # repository after 60 days without repository activity, so the bot commit
+    # below is also what keeps this schedule alive. See `staleness-alert`.
     - cron: "17 3 * * *"
   workflow_dispatch:
+  # Any push that touches the pipeline must pass the same gates before it can
+  # reach Netlify, otherwise a bad deploy ships from the main branch.
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "scripts/**"
+      - "tests/**"
+      - "data/snapshot.json"
+      - "package.json"
+      - "next.config.ts"
+      - "netlify.toml"
+      - ".github/workflows/refresh.yml"
 
 permissions:
   contents: write
 
+# One refresh at a time. A slow run must not be cancelled mid-write, or the
+# snapshot is committed half-built.
 concurrency:
   group: refresh-index
   cancel-in-progress: false
@@ -16,7 +33,9 @@ concurrency:
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 120
+    outputs:
+      changed: ${{ steps.commit.outputs.changed }}
     steps:
       - uses: actions/checkout@v4
 
@@ -28,8 +47,8 @@ jobs:
       - run: npm ci
 
       # Card texts keyed by repo id + commit sha (~30 MB at 8k repos, the
-      # markdown dominates). The run-id key makes every day a fresh entry,
-      # restored from the newest matching prefix below. This is what makes the
+      # markdown dominates). The run-id key makes every run a fresh entry,
+      # restored from the newest matching prefix below, which is what makes the
       # crawl incremental: unchanged repos are never fetched again.
       - uses: actions/cache@v4
         with:
@@ -44,10 +63,23 @@ jobs:
       - name: Static checks
         run: node scripts/verify/static.mjs
 
+      # The crawl is the only step that touches the network, so it is the only
+      # step that can hang or be rate-limited. Every request has a timeout and
+      # bounded retries inside scripts/lib/hf.ts; this retries the whole step so
+      # one bad afternoon does not cost a day of freshness.
       - name: Crawl Hugging Face
+        id: crawl
         run: npm run crawl
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        continue-on-error: true
+
+      - name: Crawl succeeded?
+        if: steps.crawl.outcome == 'failure'
+        run: |
+          echo "::error::The crawl failed. The committed snapshot is still valid, so" \
+               "this run stops here and the site stays on the last good data."
+          exit 1
 
       - name: Build snapshot
         run: npm run snapshot
@@ -55,17 +87,23 @@ jobs:
       - name: Validate snapshot
         run: node scripts/verify/snapshot.mjs
 
+      # Building here proves the snapshot prerenders. Netlify then rebuilds the
+      # same commit, so this is the gate, not the deploy.
       - name: Build the site
         run: npm run build
 
+      - name: Serve the export and check it
+        run: node scripts/verify/app-smoke.mjs
+
       - name: Commit refreshed snapshot
+        id: commit
         run: |
           git config user.name "heretic-index-bot"
           git config user.email "actions@users@github.com"
-          git add data/snapshot.json
+          git add data/snapshot.json public/llms.txt
           # updatedAt is stamped with the crawl time on every run, so on its own
-          # it makes the diff always non-empty. Compare everything else, or a
-          # day with no new repo redeploys 600 MB of identical HTML.
+          # it makes the diff always non-empty. Compare everything else, or a day
+          # with no new repo redeploys 460 MB of identical HTML.
           if node -e '
             const { execSync } = require("child_process");
             const fs = require("fs");
@@ -74,8 +112,51 @@ jobs:
             const after = strip(fs.readFileSync("data/snapshot.json", "utf8"));
             process.exit(before === after ? 0 : 1);
           '; then
-            echo "Snapshot unchanged"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Snapshot unchanged; skipping commit and redeploy."
           else
             git commit -m "Refresh Heretic snapshot"
-            git push
+            # A push can be rejected if the branch moved while this ran. The
+            # concurrency group stops two refreshes racing, but a human commit
+            # still can. Report it instead of failing the whole run.
+            if git push; then
+              echo "changed=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "::error::Could not push the refreshed snapshot. The next run will retry."
+              echo "changed=false" >> "$GITHUB_OUTPUT"
+            fi
           fi
+
+  # A failed refresh leaves the site on the last good data, which is the correct
+  # outcome, but silence is not. This job exists to say so out loud.
+  staleness-alert:
+    needs: refresh
+    if: always() && needs.refresh.result != 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Report the failure
+        run: |
+          echo "::error::The daily Heretic refresh did not complete. The site is still" \
+               "serving the last good snapshot; no data was lost."
+
+  # A daily schedule in a public repo is disabled after 60 days without
+  # repository activity. The bot's own commit counts as activity, but only while
+  # the refresh keeps succeeding, so nothing below is a substitute for the bot
+  # committing. This is a belt-and-braces check, not the mechanism.
+  verify-freshness:
+    needs: refresh
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: How old is the committed snapshot?
+        run: |
+          node -e '
+            const fs = require("fs");
+            const snap = JSON.parse(fs.readFileSync("data/snapshot.json", "utf8"));
+            const ageDays = (Date.now() - Date.parse(snap.updatedAt)) / 86400000;
+            console.log(`snapshot updatedAt: ${snap.updatedAt} (${ageDays.toFixed(1)} days old)`);
+            if (ageDays > 3) {
+              console.log(`::warning::Snapshot is ${ageDays.toFixed(1)} days old. The refresh job may be failing.`);
+            }
+          '

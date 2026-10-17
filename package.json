@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "sync": "tsx scripts/sync-public.ts",
+    "sync": "tsx scripts/sync-public.ts && tsx scripts/build-llms-txt.ts",
     "dev": "npm run sync && next dev",
     "build": "npm run sync && next build",
     "start": "next start",
@@ -12,7 +12,7 @@
     "test:watch": "vitest",
     "typecheck": "next typegen && tsc --noEmit",
     "crawl": "tsx scripts/crawl.ts",
-    "snapshot": "tsx scripts/build-snapshot.ts",
+    "snapshot": "tsx scripts/build-snapshot.ts && tsx scripts/build-llms-txt.ts",
     "refresh": "npm run crawl && npm run snapshot"
   },
   "dependencies": {

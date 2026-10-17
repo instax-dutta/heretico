@@ -42,12 +42,12 @@ Scope: A working, tested static directory of Heretic models — crawl → parse 
 - [x] G8: SEO surfaces (metadata, sitemap, robots) are generated from the snapshot and every sitemap URL resolves
   CHECK: node scripts/verify/seo.mjs
   EXPECT: SEO SURFACES VERIFIED
-  EVIDENCE: `SEO SURFACES VERIFIED` — 5189 sitemap URLs all resolve, unique titles on sampled pages. `/repo/` is generated only for the 3869 artifacts that published metrics; `public/llms.txt` ships and model pages carry JSON-LD `Dataset` records
+  EVIDENCE: `SEO SURFACES VERIFIED` — 5189 sitemap URLs all resolve, unique titles on sampled pages. `/repo/` is generated only for the 3869 artifacts that published metrics. Every generated path is lowercase because Netlify lowercases what it serves: a mixed-case directory is only reachable through a 301, and the canonical tag pointed at a redirecting URL. Model pages carry JSON-LD `Dataset` records with `dateModified`, and `public/llms.txt` is generated from the snapshot
 
 - [x] G9: Freshness automation is wired: incremental crawl skips unchanged repos and the scheduled workflow rebuilds and validates the snapshot
   CHECK: node scripts/verify/automation.mjs
   EXPECT: AUTOMATION VERIFIED
-  EVIDENCE: `AUTOMATION VERIFIED` — workflow (schedule, tests, static checks, crawl, snapshot, verify, change-guarded commit, README cache), netlify.toml (out/, npm run build), 4 incremental-cache tests
+  EVIDENCE: `AUTOMATION VERIFIED` — workflow (schedule, push-triggered gates, tests, static checks, crawl, snapshot, verify, build, app-smoke, change-guarded commit with a non-fatal push, staleness and freshness alerts, README cache), netlify.toml (out/, npm run build, cache headers), 4 incremental-cache tests
 
 - [x] G10: The DOX tree documents every durable boundary and is internally consistent
   CHECK: node scripts/verify/dox.mjs

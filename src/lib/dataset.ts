@@ -34,9 +34,27 @@ export function getOrigins(): Origin[] {
   return getSnapshot().origins;
 }
 
+/**
+ * Netlify lowercases every path it serves, so `/models/Qwen/…` 301s to
+ * `/models/qwen/…`. Prerendering the lowercase form means the built directory,
+ * the sitemap and the canonical tag all match what is served, and the route
+ * resolves without a redirect.
+ */
+export function pathSegments(id: string): string[] {
+  return id.split("/").map((part) => part.toLowerCase());
+}
+
 export function getOrigin(id: string): Origin | undefined {
-  if (!cachedOrigins) cachedOrigins = new Map(getSnapshot().origins.map((o) => [o.id, o]));
-  return cachedOrigins.get(id);
+  if (!cachedOrigins) {
+    cachedOrigins = new Map(getSnapshot().origins.map((o) => [o.id, o]));
+    // Route params arrive lowercased from the host; ids in the snapshot keep
+    // their Hub casing. Fold a second time so the lookup survives both.
+    for (const origin of getSnapshot().origins) {
+      const key = origin.id.toLowerCase();
+      if (!cachedOrigins.has(key)) cachedOrigins.set(key, origin);
+    }
+  }
+  return cachedOrigins.get(id) ?? cachedOrigins.get(id.toLowerCase());
 }
 
 /**
@@ -54,17 +72,42 @@ export function getRecipe(id: string): Recipe | undefined {
 }
 
 export function getRepo(id: string): RepoRecord | undefined {
-  if (!cachedRepos) cachedRepos = new Map(getSnapshot().repos.map((r) => [r.id, r]));
-  return cachedRepos.get(id);
+  if (!cachedRepos) {
+    const repos = getSnapshot().repos;
+    cachedRepos = new Map(repos.map((r) => [r.id, r]));
+    // Route params arrive lowercased from the host; ids keep their Hub casing.
+    for (const repo of repos) {
+      const key = repo.id.toLowerCase();
+      if (!cachedRepos.has(key)) cachedRepos.set(key, repo);
+    }
+  }
+  return cachedRepos.get(id) ?? cachedRepos.get(id.toLowerCase());
+}
+
+/**
+ * Route params arrive lowercased from the host while ids keep their Hub
+ * casing, so both filters compare case-insensitively. Comparing exactly would
+ * silently return nothing for every page on the site.
+ */
+function fold(value: string): string {
+  return value.toLowerCase();
 }
 
 export function getRecipesForOrigin(originId: string): Recipe[] {
-  return recipesForOrigin(getSnapshot(), originId);
+  return recipesForOrigin(getSnapshot(), resolveOriginId(originId));
+}
+
+/** The snapshot's own spelling of an origin, given any casing of it. */
+function resolveOriginId(originId: string): string {
+  const key = fold(originId);
+  const match = getSnapshot().origins.find((origin) => fold(origin.id) === key);
+  return match?.id ?? originId;
 }
 
 export function getReposForOrigin(originId: string): RepoRecord[] {
+  const canonical = resolveOriginId(originId);
   return getSnapshot()
-    .repos.filter((repo) => repo.originId === originId)
+    .repos.filter((repo) => repo.originId === canonical)
     .sort((a, b) => b.downloadsAllTime - a.downloadsAllTime || a.id.localeCompare(b.id));
 }
 

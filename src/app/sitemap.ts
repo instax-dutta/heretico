@@ -18,7 +18,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   ];
 
   const origins: MetadataRoute.Sitemap = snapshot.origins.map((origin) => ({
-    url: `${BASE}/models/${origin.id}/`,
+    url: `${BASE}/models/${origin.id.toLowerCase()}/`,
     lastModified: new Date(origin.lastModified || snapshot.updatedAt),
     priority: 0.8,
   }));
@@ -30,7 +30,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   }));
 
   const repos: MetadataRoute.Sitemap = getMeasuredRepos().map((repo) => ({
-    url: `${BASE}/repo/${repo.id}/`,
+    url: `${BASE}/repo/${repo.id.toLowerCase()}/`,
     lastModified: new Date(repo.lastModified || snapshot.updatedAt),
     priority: 0.5,
   }));

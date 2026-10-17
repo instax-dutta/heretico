@@ -11,6 +11,9 @@ Offline data pipeline and the runnable oracles behind `GATES.md`.
 - `sync-public.ts` — writes `public/data/index.json` from the snapshot before
   dev/build; the browser copy keeps only `schemaVersion`, `updatedAt`, `totals`,
   `origins`, `recipes` and `families`
+- `build-llms-txt.ts` — writes `public/llms.txt` from the snapshot. Generated,
+  never hand-edited: a written file would keep describing a snapshot the site
+  has already moved past.
 - `lib/hf.ts` — Hub REST client (pagination, retries, timeouts, expansions)
 - `lib/incremental.ts` — sha + `PARSER_VERSION` keyed cache decision (unit-tested)
 - `lib/pool.ts` — bounded concurrency

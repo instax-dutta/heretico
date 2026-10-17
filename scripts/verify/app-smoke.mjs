@@ -78,7 +78,7 @@ try {
 
   const rankedOrigin = snapshot.origins.find((origin) => origin.bestRecipeId);
   assert(rankedOrigin, "no ranked origin to smoke test");
-  const originPage = await get(`/models/${rankedOrigin.id}/`);
+  const originPage = await get(`/models/${rankedOrigin.id.toLowerCase()}/`);
   assert(originPage.status === 200, `model page returned ${originPage.status}`);
   assert(originPage.body.includes("Best version"), "model page is missing the best version block");
   assert(
@@ -87,7 +87,7 @@ try {
   );
 
   const repo = snapshot.repos[0];
-  const repoPage = await get(`/repo/${repo.id}/`);
+  const repoPage = await get(`/repo/${repo.id.toLowerCase()}/`);
   assert(repoPage.status === 200, `repo page returned ${repoPage.status}`);
   assert(repoPage.body.includes("Published metrics"), "repo page is missing the metrics block");
   assert(repoPage.body.includes(repo.id.split("/").pop()), "repo page does not render the repo name");

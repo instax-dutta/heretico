@@ -45,17 +45,32 @@ export function trimNumber(value: number): string {
   return Number.isInteger(value) ? String(value) : String(Math.round(value * 10) / 10);
 }
 
+/**
+ * Origin and repo ids contain a slash and mixed case, but Netlify lowercases
+ * every path it serves. Emitting the id verbatim means each model and repo URL
+ * costs a 301 to the lowercase form and the canonical tag points at a
+ * redirecting URL. Everything that builds a URL lowercases it, so the built
+ * directory, the sitemap and the canonical all agree with what is served.
+ * Lookups stay case-insensitive in `lib/dataset.ts`.
+ */
+function idPath(id: string): string {
+  return id
+    .split("/")
+    .map((part) => encodeURIComponent(part).toLowerCase())
+    .join("/");
+}
+
 export function huggingFaceUrl(repoId: string): string {
   return `https://huggingface.co/${repoId}`;
 }
 
 /** Origin ids contain a slash; keep it readable in URLs. */
 export function originHref(id: string): string {
-  return `/models/${id.split("/").map(encodeURIComponent).join("/")}/`;
+  return `/models/${idPath(id)}/`;
 }
 
 export function repoHref(id: string): string {
-  return `/repo/${id.split("/").map(encodeURIComponent).join("/")}/`;
+  return `/repo/${idPath(id)}/`;
 }
 
 export function familyHref(slug: string): string {

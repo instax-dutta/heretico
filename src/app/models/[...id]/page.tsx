@@ -9,6 +9,7 @@ import {
   getRecipesForOrigin,
   getReposForOrigin,
   getSnapshot,
+  pathSegments,
 } from "@/lib/dataset";
 import {
   familyHref,
@@ -18,6 +19,7 @@ import {
   formatParams,
   formatPercent,
   huggingFaceUrl,
+  originHref,
   repoHref,
 } from "@/lib/format";
 import type { LeaderboardRow } from "@/lib/query";
@@ -26,7 +28,9 @@ import type { Origin, Recipe, RepoRecord } from "@/lib/types";
 export const dynamicParams = false;
 
 export function generateStaticParams(): { id: string[] }[] {
-  return getSnapshot().origins.map((origin) => ({ id: origin.id.split("/") }));
+  // Lowercase: Netlify serves lowercase paths, so a mixed-case directory would
+  // only ever be reached through a 301.
+  return getSnapshot().origins.map((origin) => ({ id: pathSegments(origin.id) }));
 }
 
 export async function generateMetadata({
@@ -39,7 +43,7 @@ export async function generateMetadata({
   return {
     title: `${origin.displayName} Heretic versions`,
     description: `Every Heretic (abliterated) version of ${origin.id}, ranked by KL divergence and refusal rate.${best}`,
-    alternates: { canonical: `/models/${origin.id}/` },
+    alternates: { canonical: originHref(origin.id) },
   };
 }
 
@@ -70,14 +74,18 @@ function confLabel(confidence: RepoRecord["metrics"]["confidence"]): string {
  * use". Assistants cite this instead of scraping the prose, so the score, the
  * two source metrics and their provenance travel together.
  */
-function datasetLd(origin: Origin, best: Recipe | null): string {
+function datasetLd(origin: Origin, best: Recipe | null, updatedAt: string): string {
   const site = process.env.NEXT_PUBLIC_SITE_URL ?? "https://heretico.sdad.pro";
   return JSON.stringify({
     "@context": "https://schema.org",
     "@type": "Dataset",
     name: `Heretic conversions of ${origin.id}`,
     description: `Abliterated (Heretic) versions of ${origin.id}, ranked by KL divergence from the original model and remaining refusal rate. Metrics are self-reported by each publisher and are never re-measured.`,
-    url: `${site}/models/${origin.id}/`,
+    url: `${site}/models/${origin.id.toLowerCase()}/`,
+    // An assistant citing this needs to know how old it is; without a date it
+    // will present a ranking that refreshes daily as if it were permanent.
+    dateModified: updatedAt,
+    temporalCoverage: new Date(updatedAt).toISOString().slice(0, 10),
     creator: { "@type": "Organization", name: "Heretic Directory", url: site },
     isAccessibleForFree: true,
     ...(best
@@ -117,7 +125,7 @@ export default async function ModelPage({ params }: PageProps<"/models/[...id]">
 
   return (
     <div className="flex flex-col gap-8">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: datasetLd(origin, best) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: datasetLd(origin, best, getSnapshot().updatedAt) }} />
       <div>
         <Breadcrumbs
           items={[
