@@ -2,7 +2,7 @@
 
 OWNS: src/**, scripts/**, tests/**, data/**, public/**, package.json, PLAN.md, README.md, AGENTS.md, GATES.md, next.config.ts, tsconfig.json, vitest.config.ts, eslint.config.mjs, .github/**
 
-Scope: A working, tested directory of Heretic models — crawl → parse → classify → score → snapshot → queryable API and pages — verified against real Hugging Face data. Visual design is out of scope for this ledger.
+Scope: A working, tested static directory of Heretic models — crawl → parse → classify → score → snapshot → prerendered pages with browser-side filtering — verified against real Hugging Face data and deployable to Netlify. Visual design and any API surface are out of scope.
 
 - [ ] G1: The codebase typechecks and lints without errors
   CHECK: node scripts/verify/static.mjs
@@ -34,12 +34,12 @@ Scope: A working, tested directory of Heretic models — crawl → parse → cla
   EXPECT: SNAPSHOT VERIFIED
   EVIDENCE: pending
 
-- [ ] G7: A production build serves every functional route with real snapshot content, and every JSON endpoint answers
+- [ ] G7: A production static export serves every functional route with real snapshot content
   CHECK: node scripts/verify/app-smoke.mjs
   EXPECT: APP SMOKE PASSED
   EVIDENCE: pending
 
-- [ ] G8: SEO and machine surfaces (metadata, sitemap, robots, llms.txt) are generated from the snapshot
+- [ ] G8: SEO surfaces (metadata, sitemap, robots) are generated from the snapshot and every sitemap URL resolves
   CHECK: node scripts/verify/seo.mjs
   EXPECT: SEO SURFACES VERIFIED
   EVIDENCE: pending

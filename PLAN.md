@@ -179,22 +179,32 @@ The app reads the snapshot through `src/lib/dataset.ts` (single loader, typed
 accessors, memoised). No database, no runtime third-party calls: the site is
 reproducible from the committed snapshot and works offline.
 
+Deployment is a static export to Netlify (`out/`). The full snapshot powers
+prerendering; a compact `public/data/index.json` (~1–2 MB gzipped) powers
+browser-side filtering. Nothing runs on a server, so there is no free-tier
+function limit to design around.
+
 ---
 
 ## 7. Routes
 
+Static export (`output: "export"`), no server functions. Filtering and search
+run in the browser over one compact index, so Netlify's free tier only ever
+serves files.
+
 | Route | Purpose |
 | :-- | :-- |
 | `/` | Top picks, totals, family entry points, search |
-| `/leaderboard` | Filterable + sortable ranked table (URL-driven) |
+| `/leaderboard` | Filterable + sortable ranked table (client-side, URL state) |
 | `/models` | Canonical model index with best pick per model |
 | `/models/[owner]/[name]` | All Heretic versions of one base model, ranked, with comparison |
 | `/families` / `/families/[slug]` | Family leaderboards |
-| `/repo/[owner]/[name]` | One HF artifact: evidence, parsed metrics, source link |
-| `/search` | Server search over names/aliases |
+| `/models/[owner]/[name]/[repo]` | Direct conversion detail: evidence, metrics, source link |
 | `/methodology` | Scoring, confidence, data provenance, caveats |
-| `/api/v1/leaderboard`, `/models`, `/models/[id]`, `/stats`, `/search` | JSON |
-| `/llms.txt`, `/sitemap.xml`, `/robots.txt` | Machine surfaces |
+| `/sitemap.xml`, `/robots.txt` | Search-engine surfaces |
+
+No public JSON API: the site is for humans. `public/data/index.json` exists only
+because the browser needs it to filter; it is not documented or linked.
 
 ---
 
@@ -213,11 +223,11 @@ reproducible from the committed snapshot and works offline.
    2.6 recipe grouping + inherited evidence
    2.7 scoring, Pareto, best pick, ranks
    2.8 snapshot build + schema validation + overrides
-3  Serving
+3  Serving (static export, Netlify)
    3.1 dataset loader + query layer (filter/sort/search/paginate)
-   3.2 JSON API routes
+   3.2 client index build + browser search
    3.3 pages (home, leaderboard, models, model detail, family, repo, methodology)
-   3.4 SEO: metadata, sitemap, robots, llms.txt
+   3.4 SEO: metadata, sitemap, robots
    3.5 freshness automation (action + incremental crawl)
 4  Verification
    4.1 unit/integration suites, snapshot invariants
