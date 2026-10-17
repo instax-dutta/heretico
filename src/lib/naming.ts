@@ -172,7 +172,12 @@ export function familyFor(nameOrId: string): { label: string; slug: string } {
     if (rule.pattern.test(name)) return { label: rule.label, slug: rule.slug };
   }
   // Fallback: first meaningful token, e.g. "Cydonia-24B-v4.3" -> Cydonia.
-  const token = name.split(/[-_.\s]/).find((t) => /^[A-Za-z][A-Za-z0-9]*$/.test(t) && t.length > 1);
+  // Modifier words make terrible families ("heretic", "uncensored", "merged").
+  const modifier =
+    /^(heretic|hereticness|uncensored|abliterated|ablitered|decensored|merged|merge|finetune|tuned|chat|instruct|preview|experimental|beta|alpha)$/i;
+  const token = name
+    .split(/[-_.\s]/)
+    .find((t) => /^[A-Za-z][A-Za-z0-9]*$/.test(t) && t.length > 1 && !modifier.test(t));
   if (!token) return { label: "Other", slug: "other" };
   return { label: token, slug: slugify(token) };
 }

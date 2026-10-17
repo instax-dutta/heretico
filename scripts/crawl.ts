@@ -12,13 +12,10 @@ import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "
 import { dirname, join } from "node:path";
 import { discoverHereticModels, fetchReadme, toRawRepo, type HFRawModel } from "./lib/hf";
 import { mapLimit } from "./lib/pool";
+import { loadCard, type CardCacheEntry } from "./lib/incremental";
 import { parseCard } from "../src/lib/parse/card";
 import type { ParsedCard, RawRepo } from "../src/lib/types";
 
-interface CachedCard {
-  sha: string;
-  card: ParsedCard | null;
-}
 
 interface RawFile {
   crawledAt: string;
@@ -45,17 +42,17 @@ function cachePath(id: string): string {
   return join(CACHE_DIR, `${id.replace(/[^A-Za-z0-9_.-]+/g, "__")}.json`);
 }
 
-function readCache(id: string): CachedCard | null {
+function readCache(id: string): CardCacheEntry | null {
   const path = cachePath(id);
   if (!existsSync(path)) return null;
   try {
-    return JSON.parse(readFileSync(path, "utf8")) as CachedCard;
+    return JSON.parse(readFileSync(path, "utf8")) as CardCacheEntry;
   } catch {
     return null;
   }
 }
 
-function writeCache(id: string, value: CachedCard): void {
+function writeCache(id: string, value: CardCacheEntry): void {
   mkdirSync(dirname(cachePath(id)), { recursive: true });
   writeFileSync(cachePath(id), JSON.stringify(value));
 }
@@ -90,21 +87,30 @@ async function main(): Promise<void> {
     const cached = refresh ? null : readCache(raw.id);
     let card: ParsedCard | null = null;
 
-    if (cached && cached.sha === raw.sha) {
-      card = cached.card;
-      reused += 1;
-    } else {
-      try {
-        const markdown = await fetchReadme(raw.id, { token });
-        card = markdown
-          ? parseCard(markdown, { selfId: raw.id, declaredBaseModels: raw.declaredBaseModels })
-          : null;
-        writeCache(raw.id, { sha: raw.sha, card });
-      } catch (error) {
-        errors += 1;
-        console.warn(`\n  ! ${raw.id}: ${(error as Error).message}`);
-        card = null;
+    try {
+      const result = await loadCard(
+        raw,
+        cached,
+        (id) => fetchReadme(id, { token }),
+        (markdown, options) =>
+          parseCard(markdown, {
+            selfId: options.selfId,
+            declaredBaseModels: raw.declaredBaseModels,
+          }),
+      );
+      card = result.card;
+      if (result.fetched) {
+        writeCache(raw.id, result.entry);
+        fetched += 1;
+      } else {
+        reused += 1;
       }
+    } catch (error) {
+      // Leave the previous cache entry in place so a transient failure does not
+      // turn a parsed repo into a missing one on the next run.
+      errors += 1;
+      console.warn(`\n  ! ${raw.id}: ${(error as Error).message}`);
+      card = cached?.card ?? null;
       fetched += 1;
     }
     cards[raw.id] = card;

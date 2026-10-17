@@ -149,6 +149,26 @@ describe("buildRecipes", () => {
     expect(byAuthor.get("other")!.bestPick).toBe(false);
   });
 
+  it("merges re-uploads of the same ablation across authors", () => {
+    const inputs = [
+      direct("a/Qwen3-4B-heretic", "Qwen/Qwen3-4B", metrics({ kl: 0.1, refusals: 5 })),
+      direct("b/Qwen3-4B-heretic", "Qwen/Qwen3-4B", metrics({ kl: 0.1, refusals: 5 })),
+    ];
+    const { recipes } = buildRecipes(build(inputs));
+    expect(recipes).toHaveLength(1);
+    expect(recipes[0].repoIds).toHaveLength(2);
+  });
+
+  it("flags a claim of both zero KL and zero refusals", () => {
+    const inputs = [
+      direct("a/Qwen3-4B-heretic", "Qwen/Qwen3-4B", metrics({ kl: 0, refusals: 0 })),
+      direct("b/Qwen3-4B-heretic", "Qwen/Qwen3-4B", metrics({ kl: 0.2, refusals: 5 })),
+    ];
+    const { recipes } = buildRecipes(build(inputs));
+    expect(recipes.find((recipe) => recipe.author === "a")!.implausible).toBe(true);
+    expect(recipes.find((recipe) => recipe.author === "b")!.implausible).toBe(false);
+  });
+
   it("keeps different ablations by the same author with different numbers apart", () => {
     const inputs = [
       direct("a/Qwen3-4B-heretic", "Qwen/Qwen3-4B", metrics({ kl: 0.05, refusals: 10 })),

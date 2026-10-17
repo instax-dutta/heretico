@@ -11,8 +11,9 @@ import {
   type ScoreInput,
 } from "@/lib/scoring";
 
-function point(overrides: Partial<ScoreInput> & { id: string }): ScoreInput {
+function point(overrides: Partial<ScoreInput> = {}): ScoreInput {
   return {
+    id: "p",
     kl: 0.1,
     refusals: 5,
     refusalTotal: 100,

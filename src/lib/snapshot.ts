@@ -57,7 +57,12 @@ export function buildSnapshot(
   }));
   const { recipes, metricsByRepo, recipeByRepo } = buildRecipes(recipeInputs);
 
-  const verified = inputs.filter((input) => classifications.get(input.repo.id)!.verified);
+  // A verified repo without a resolvable base cannot be placed under a model, so
+  // it stays out of the published set instead of inventing an origin.
+  const verified = inputs.filter((input) => {
+    const classification = classifications.get(input.repo.id)!;
+    return classification.verified && Boolean(classification.originId);
+  });
 
   const repos: RepoRecord[] = verified.map((input) => {
     const classification = classifications.get(input.repo.id) as Classification;
@@ -125,6 +130,7 @@ export function buildSnapshot(
 
   const originGroups = new Map<string, RepoRecord[]>();
   for (const repo of repos) {
+    if (!repo.originId) continue;
     const list = originGroups.get(repo.originId) ?? [];
     list.push(repo);
     originGroups.set(repo.originId, list);
@@ -139,17 +145,25 @@ export function buildSnapshot(
 
   const origins: Origin[] = [];
   for (const [originId, members] of originGroups) {
-    const originRepo = repoById.get(originId) ?? byId.get(originId)?.repo ?? null;
-    const params = originRepo
-      ? paramsFor(originRepo)
-      : {
-          totalB: members.reduce<number | null>(
-            (max, repo) => (repo.paramsB !== null && (max === null || repo.paramsB > max) ? repo.paramsB : max),
-            null,
-          ),
-          activeB: members.find((repo) => repo.paramsActiveB !== null)?.paramsActiveB ?? null,
-          moe: members.some((repo) => repo.moe),
-        };
+    // Prefer the upstream repo's own weights metadata, then the origin record if
+    // it happens to be indexed, then the largest artifact we have.
+    const originSource = byId.get(originId)?.repo ?? null;
+    const originRecord = repoById.get(originId) ?? null;
+    const fromName = parseParams(originId);
+    const params = originSource
+      ? paramsFor(originSource)
+      : fromName.totalB !== null
+        ? { totalB: fromName.totalB, activeB: fromName.activeB, moe: fromName.moe }
+        : originRecord && originRecord.paramsB !== null
+          ? { totalB: originRecord.paramsB, activeB: originRecord.paramsActiveB, moe: originRecord.moe }
+          : {
+              totalB: members.reduce<number | null>(
+                (max, repo) => (repo.paramsB !== null && (max === null || repo.paramsB > max) ? repo.paramsB : max),
+                null,
+              ),
+              activeB: members.find((repo) => repo.paramsActiveB !== null)?.paramsActiveB ?? null,
+              moe: members.some((repo) => repo.moe),
+            };
     const family = familyFor(originId);
     const cohort = recipesByOrigin.get(originId) ?? [];
     const best = cohort.find((recipe) => recipe.bestPick) ?? null;

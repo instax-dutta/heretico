@@ -152,6 +152,8 @@ export interface Recipe {
   score: number;
   pareto: boolean;
   bestPick: boolean;
+  /** Card claims both zero KL and zero refusals, which cannot both be measured. */
+  implausible: boolean;
   confidence: MetricConfidence;
   hereticVersion: string | null;
   formats: string[];

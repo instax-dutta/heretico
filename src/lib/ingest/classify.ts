@@ -54,6 +54,16 @@ export function classifyRepos(inputs: RepoInput[]): Map<string, Classification> 
   const resolving = new Set<string>();
   const cyclic = new Set<string>();
 
+  /** Repo ids are case-sensitive on the Hub but authors type parents freely. */
+  const indexedByLower = new Map<string, string>();
+  for (const input of inputs) {
+    const key = input.repo.id.toLowerCase();
+    if (!indexedByLower.has(key)) indexedByLower.set(key, input.repo.id);
+  }
+  function inputFor(id: string): RepoInput | undefined {
+    return byId.get(id) ?? byId.get(indexedByLower.get(id.toLowerCase()) ?? "");
+  }
+
   function resolve(id: string): Classification {
     const cached = results.get(id);
     if (cached) return cached;
@@ -86,8 +96,9 @@ export function classifyRepos(inputs: RepoInput[]): Map<string, Classification> 
 
     const parents = baseIdsFor(input);
     const primaryParent = parents[0] ?? null;
-    const parentClassification = primaryParent ? byId.get(primaryParent) : undefined;
-    const parentResolved = parentClassification ? resolve(primaryParent!) : null;
+    const parentInput = primaryParent ? inputFor(primaryParent) : undefined;
+    const parentClassification = parentInput;
+    const parentResolved = parentInput ? resolve(parentInput.repo.id) : null;
 
     const parentIsHeretic =
       parents.some(nameLooksHereic) || Boolean(parentResolved && parentResolved.kind !== "unknown");
@@ -153,7 +164,46 @@ export function classifyRepos(inputs: RepoInput[]): Map<string, Classification> 
   }
 
   for (const input of inputs) resolve(input.repo.id);
+  canonicalizeOrigins(results, inputs);
   return results;
+}
+
+/**
+ * One spelling per upstream model.
+ *
+ * Base ids come from free-text cards, so "google/gemma-4-12B-it" and
+ * "google/gemma-4-12b-it" both appear. Left alone they split one model into two
+ * origin pages (and half the leaderboard cohorts), so every origin id is folded
+ * onto a single spelling before anything downstream groups by it.
+ */
+function canonicalizeOrigins(
+  results: Map<string, Classification>,
+  inputs: RepoInput[],
+): void {
+  const indexed = new Set(inputs.map((input) => input.repo.id));
+  const variants = new Map<string, Map<string, number>>();
+  for (const classification of results.values()) {
+    if (!classification.originId) continue;
+    const key = classification.originId.toLowerCase();
+    const counts = variants.get(key) ?? new Map<string, number>();
+    counts.set(classification.originId, (counts.get(classification.originId) ?? 0) + 1);
+    variants.set(key, counts);
+  }
+
+  const canonical = new Map<string, string>();
+  for (const [key, counts] of variants) {
+    const ranked = [...counts.entries()].sort(
+      (a, b) => b[1] - a[1] || a[0].localeCompare(b[0]),
+    );
+    // Prefer a spelling we actually indexed: its Hub metadata feeds the page.
+    canonical.set(key, (ranked.find(([id]) => indexed.has(id)) ?? ranked[0])[0]);
+  }
+
+  for (const classification of results.values()) {
+    if (!classification.originId) continue;
+    classification.originId =
+      canonical.get(classification.originId.toLowerCase()) ?? classification.originId;
+  }
 }
 
 /** True when a repo id looks like a Heretic conversion rather than an upstream model. */

@@ -65,7 +65,11 @@ export async function hfFetch(url: string, options: RequestOptions = {}): Promis
   let lastError: unknown;
   for (let attempt = 0; attempt < retries; attempt += 1) {
     try {
-      const response = await fetch(url, { headers });
+      const response = await fetch(url, {
+        headers,
+        // A stalled TLS connection must never wedge a worker forever.
+        signal: AbortSignal.timeout(45_000),
+      });
       // 404: no README. 401/403: gated or private repo — index the metadata we
       // already have, but never fail the whole crawl over one wall.
       if (response.status === 404 || response.status === 401 || response.status === 403) {

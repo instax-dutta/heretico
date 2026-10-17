@@ -475,7 +475,12 @@ export function parseCard(markdown: string, options: ParseOptions = {}): ParsedC
       // "an [abliterated](https://github.com/p-e-w/heretic) MiniCPM-V"
       /\[(?:abliterated|decensored|uncensored|de-censored)\]\(https?:\/\/github\.com\/p-e-w\/heretic\)/i.test(body));
 
-  const versionMatch = body.match(/heretic[^0-9\n]{0,40}?v?(\d+\.\d+(?:\.\d+)?)/i);
+  // Strip link targets first: "[Heretic](https://github.com/p-e-w/heretic) v1.2.0"
+  // otherwise lets the URL's characters sit between the name and the version.
+  const plain = body.replace(/\[([^\]]*)\]\(([^)]*)\)/g, "$1");
+  const versionMatch =
+    plain.match(/\bheretic\s+v(\d+\.\d+(?:\.\d+)?)/i) ??
+    plain.match(/\bheretic\s+version\s+(\d+\.\d+(?:\.\d+)?)/i);
   const metrics = emptyMetrics();
 
   const candidates: Candidate[] = [];

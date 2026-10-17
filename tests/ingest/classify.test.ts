@@ -175,6 +175,41 @@ describe("classifyRepos", () => {
     expect(result.get("b/Two-heretic")!.verified).toBe(false);
   });
 
+  it("folds case-variant origin spellings onto the indexed one", () => {
+    const result = classifyRepos([
+      input("google/gemma-4-12b-it", { repo: { declaredBaseModels: [] }, card: card() }),
+      input("p-e-w/gemma-4-12b-it-heretic", {
+        repo: { declaredBaseModels: ["google/gemma-4-12b-it"] },
+        card: card({ baseModelIds: ["google/gemma-4-12b-it"], isHereticConversion: true }),
+      }),
+      input("someone/gemma-4-12B-it-heretic", {
+        repo: { declaredBaseModels: ["google/gemma-4-12B-it"] },
+        card: card({ baseModelIds: ["google/gemma-4-12B-it"], isHereticConversion: true }),
+      }),
+    ]);
+    expect(result.get("p-e-w/gemma-4-12b-it-heretic")!.originId).toBe("google/gemma-4-12b-it");
+    expect(result.get("someone/gemma-4-12B-it-heretic")!.originId).toBe("google/gemma-4-12b-it");
+  });
+
+  it("resolves a parent that differs only in case from the indexed repo id", () => {
+    const result = classifyRepos([
+      input("p-e-w/Gemma-3-12B-it-heretic", {
+        repo: { declaredBaseModels: ["google/gemma-3-12b-it"] },
+        card: card({ baseModelIds: ["google/gemma-3-12b-it"], isHereticConversion: true }),
+      }),
+      input("someone/Gemma-3-12B-it-heretic-GGUF", {
+        repo: {
+          declaredBaseModels: ["p-e-w/gemma-3-12b-it-heretic"],
+          files: ["model-Q4_K_M.gguf"],
+        },
+        card: card({ baseModelIds: ["p-e-w/gemma-3-12b-it-heretic"] }),
+      }),
+    ]);
+    const quant = result.get("someone/Gemma-3-12B-it-heretic-GGUF")!;
+    expect(quant.kind).toBe("quant");
+    expect(quant.originId).toBe("google/gemma-3-12b-it");
+  });
+
   it("deduplicates parents and ignores self-references", () => {
     const result = classifyRepos([
       input("p-e-w/Qwen3-4B-heretic", {

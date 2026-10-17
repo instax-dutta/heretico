@@ -53,6 +53,7 @@ function recipe(id: string, overrides: Partial<Recipe> = {}): Recipe {
     score: 90,
     pareto: false,
     bestPick: false,
+    implausible: false,
     confidence: "high",
     hereticVersion: "1.2.0",
     formats: ["safetensors"],

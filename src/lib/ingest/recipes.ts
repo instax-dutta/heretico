@@ -33,6 +33,24 @@ function hasNumbers(metrics: Metrics): boolean {
 }
 
 /** Small deterministic id, stable across refreshes for the same recipe. */
+function signatureOf(recipe: Recipe): string {
+  return [
+    recipe.originId,
+    recipe.kl,
+    recipe.refusals,
+    recipe.refusalTotal,
+    recipe.hereticVersion ?? "",
+  ].join("|");
+}
+
+function mergeBenchmarks(a: Recipe["benchmarks"], b: Recipe["benchmarks"]): Recipe["benchmarks"] {
+  const byMetric = new Map(a.map((benchmark) => [benchmark.metric, benchmark]));
+  for (const benchmark of b) {
+    if (!byMetric.has(benchmark.metric)) byMetric.set(benchmark.metric, benchmark);
+  }
+  return [...byMetric.values()];
+}
+
 export function recipeIdFor(key: string): string {
   let hash = 0x811c9dc5;
   for (let i = 0; i < key.length; i += 1) {
@@ -177,6 +195,7 @@ export function buildRecipes(inputs: RecipeInput[]): RecipeBuild {
       score: score?.quality ?? 0,
       pareto: false,
       bestPick: false,
+      implausible: evidenceMetrics.kl === 0 && evidenceMetrics.refusals === 0,
       confidence: evidenceMetrics.confidence,
       hereticVersion: ablation.card?.hereticVersion ?? null,
       formats: [...allFormats].sort(),
@@ -190,10 +209,43 @@ export function buildRecipes(inputs: RecipeInput[]): RecipeBuild {
     });
   }
 
+  // Re-uploads of the same ablation (often by different accounts) carry
+  // identical metrics. Merge them so the leaderboard shows one row per
+  // distinguishable result rather than four copies of the same weights.
+  const bySignature = new Map<string, Recipe>();
+  for (const recipe of recipes) {
+    const signature = signatureOf(recipe);
+    const existing = bySignature.get(signature);
+    if (!existing) {
+      bySignature.set(signature, recipe);
+      continue;
+    }
+    const keep = existing.downloadsAllTime >= recipe.downloadsAllTime ? existing : recipe;
+    const other = keep === existing ? recipe : existing;
+    keep.repoIds = [...new Set([...keep.repoIds, ...other.repoIds])].sort();
+    keep.downloadsAllTime += other.downloadsAllTime;
+    keep.downloads30d += other.downloads30d;
+    keep.likes = Math.max(keep.likes, other.likes);
+    keep.lastModified =
+      keep.lastModified >= other.lastModified ? keep.lastModified : other.lastModified;
+    keep.formats = [...new Set([...keep.formats, ...other.formats])].sort();
+    keep.benchmarks = mergeBenchmarks(keep.benchmarks, other.benchmarks);
+    keep.implausible = keep.implausible || other.implausible;
+    bySignature.set(signature, keep);
+  }
+
+  const mergedRecipes = [...bySignature.entries()].map(([signature, recipe]) => {
+    const id = recipeIdFor(signature);
+    return { ...recipe, id };
+  });
+  for (const recipe of mergedRecipes) {
+    for (const repoId of recipe.repoIds) recipeByRepo.set(repoId, recipe.id);
+  }
+
   // Pareto and best pick are cohort-relative: only meaningful when comparing
   // versions of the same underlying model.
   const cohorts = new Map<string, Recipe[]>();
-  for (const recipe of recipes) {
+  for (const recipe of mergedRecipes) {
     const list = cohorts.get(recipe.originId) ?? [];
     list.push(recipe);
     cohorts.set(recipe.originId, list);
@@ -217,11 +269,11 @@ export function buildRecipes(inputs: RecipeInput[]): RecipeBuild {
     }
   }
 
-  recipes.sort((a, b) => {
+  mergedRecipes.sort((a, b) => {
     if (a.originId !== b.originId) return a.originId.localeCompare(b.originId);
     if (b.score !== a.score) return b.score - a.score;
     return a.id.localeCompare(b.id);
   });
 
-  return { recipes, metricsByRepo, recipeByRepo };
+  return { recipes: mergedRecipes, metricsByRepo, recipeByRepo };
 }

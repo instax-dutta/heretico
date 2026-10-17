@@ -1,15 +1,18 @@
 /**
- * Copy the committed snapshot into `public/` so the browser can fetch it.
+ * Generate `public/data/index.json` — the browser-side dataset.
  *
- * Data lives in `data/snapshot.json` (one copy in git); the public copy is a
- * build artifact, refreshed here before `dev` and `build`.
+ * The full snapshot carries per-repo provenance and evidence strings for
+ * prerendering; the browser only needs origins and recipes to filter and sort.
+ * Writing this here (rather than at request time) keeps the site static.
  */
-import { copyFileSync, existsSync, mkdirSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import type { Snapshot } from "../src/lib/types";
 
 const ROOT = process.cwd();
 const source = join(ROOT, "data", "snapshot.json");
-const target = join(ROOT, "public", "data", "snapshot.json");
+const target = join(ROOT, "public", "data", "index.json");
+const legacy = join(ROOT, "public", "data", "snapshot.json");
 
 if (!existsSync(source)) {
   console.error(
@@ -18,6 +21,21 @@ if (!existsSync(source)) {
   process.exit(1);
 }
 
+const snapshot = JSON.parse(readFileSync(source, "utf8")) as Snapshot;
+const index = {
+  schemaVersion: snapshot.schemaVersion,
+  updatedAt: snapshot.updatedAt,
+  totals: snapshot.totals,
+  origins: snapshot.origins,
+  recipes: snapshot.recipes,
+  families: snapshot.families,
+};
+
 mkdirSync(dirname(target), { recursive: true });
-copyFileSync(source, target);
-console.log(`Synced snapshot -> ${target}`);
+const tmp = `${target}.tmp`;
+writeFileSync(tmp, JSON.stringify(index));
+renameSync(tmp, target);
+if (existsSync(legacy)) unlinkSync(legacy);
+
+const size = (JSON.stringify(index).length / 1024 / 1024).toFixed(2);
+console.log(`Synced browser index (${size} MB) -> ${target}`);
