@@ -33,8 +33,9 @@ model listings  ──►   discovery +   ──►   classify → resolve  ─�
 ```
 
 1. **Discover.** Two Hub passes — `filter=heretic` (the tag) and `search=heretic`
-   (free text) — are deduplicated, with the tagged pass winning collisions
-   (the gap reported in [p-e-w/heretic#450](https://github.com/p-e-w/heretic/issues/450)).
+   (free text) — are deduplicated, with the tagged pass winning collisions. One
+   pass is not enough: many Heretic models carry no tag, which is the gap counted
+   in [p-e-w/heretic#450](https://github.com/p-e-w/heretic/issues/450).
 2. **Enrich.** Each repository's README is fetched once and cached under
    `data/cache/cards/` keyed by commit sha *and* parser version, so a parser fix
    re-parses local text instead of re-downloading thousands of cards.
@@ -137,7 +138,8 @@ ranked only when the card publishes KL *and* a refusal count with a denominator
 (`confidence` of `high`, `medium` or `inherited`); anything else is listed as
 unranked rather than scored. Within one origin, a recipe is on the **Pareto**
 frontier when nothing else is at least as good on both axes, and the **best
-pick** is the highest score with downloads, recency and id as tie-breakers.
+pick** is the highest score; ties break on lower KL, then lower refusal rate,
+more downloads, recency, and finally recipe id.
 
 The weights live in `src/lib/scoring.ts` and the methodology page imports them,
 so the published prose cannot drift from the code.
