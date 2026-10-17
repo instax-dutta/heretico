@@ -5,7 +5,7 @@
   "scripts": {
     "sync": "tsx scripts/sync-public.ts && tsx scripts/build-llms-txt.ts",
     "dev": "npm run sync && next dev",
-    "build": "npm run sync && next build",
+    "build": "npm run sync && next build && npm run og",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
@@ -14,7 +14,7 @@
     "crawl": "tsx scripts/crawl.ts",
     "snapshot": "tsx scripts/build-snapshot.ts && tsx scripts/build-llms-txt.ts",
     "refresh": "npm run crawl && npm run snapshot",
-    "og": "next build && cp out/opengraph-image public/og.png"
+    "og": "tsx scripts/build-og.ts"
   },
   "dependencies": {
     "next": "16.4.2",

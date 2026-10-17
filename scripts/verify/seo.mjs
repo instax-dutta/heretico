@@ -57,6 +57,29 @@ const titles = [
 ];
 assert(new Set(titles).size === titles.length, "page titles are not unique");
 
+// A social card and favicon are user-facing surfaces that fail silently: a
+// broken og:image 404s only in someone else's preview, never on the site. The
+// App Router's opengraph-image convention made exactly that mistake, emitting a
+// query-string URL with no file behind it.
+const home = readFileSync(path.join(OUT, "index.html"), "utf8");
+const ogImage = /<meta property="og:image" content="([^"]+)"/.exec(home)?.[1];
+assert(ogImage, "homepage declares no og:image");
+assert(!ogImage.includes("?"), `og:image carries a query string and will 404: ${ogImage}`);
+const ogFile = path.join(OUT, decodeURIComponent(new URL(ogImage).pathname));
+assert(existsSync(ogFile), `og:image resolves to no file: ${ogImage}`);
+
+const iconHrefs = [...home.matchAll(/<link rel="(?:icon|apple-touch-icon)"[^>]*href="([^"]+)"/g)]
+  .map((m) => m[1].split("?")[0]);
+assert(iconHrefs.length > 0, "homepage declares no icon");
+for (const href of iconHrefs) {
+  assert(existsSync(path.join(OUT, href)), `icon resolves to no file: ${href}`);
+}
+
+// The default Next.js scaffold ships these to every visitor. None are used.
+for (const dead of ["next.svg", "vercel.svg", "globe.svg", "window.svg", "file.svg"]) {
+  assert(!existsSync(path.join(OUT, dead)), `Next.js template asset still shipping: ${dead}`);
+}
+
 console.log(
   `SEO surfaces: ${urls.length} sitemap URLs, ${titles.length} sampled pages with unique titles.`,
 );

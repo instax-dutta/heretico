@@ -13,10 +13,16 @@ groups the artifacts that belong to the same ablation, and ranks the results.
 Ships as a static export for Netlify (free tier); `NEXT_PUBLIC_SITE_URL`
 defaults to `https://heretico.sdad.pro`.
 
-At the time of the committed snapshot: **8,209 repositories indexed, 6,188
-verified, 1,046 canonical upstream models, 1,016 measured ablation recipes,
+At the time of the committed snapshot: **8,214 repositories indexed, 6,191
+verified, 1,046 canonical upstream models, 1,007 measured ablation recipes,
 1,265 direct Heretic conversions**, across 62.7M downloads. The index refreshes
-daily; see [Freshness](#freshness).
+itself daily; see [Freshness](#freshness).
+
+Those counts are not the interesting ones. 8,214 repositories collapse to 1,046
+base models because one ablation is frequently published as a safetensors build
+plus a dozen GGUF quants, and all of those share one row. Of the 1,007 measured
+ablations, **883 are verified** and 124 are not; 54 base models have no verified
+conversion at all and therefore show no best version.
 
 ---
 
@@ -89,6 +95,7 @@ Commands:
 | `npm run dev` | `sync` then `next dev` |
 | `npm run build` | `sync` then `next build` → static export in `out/` |
 | `npm run sync` | writes `public/data/index.json` and `public/llms.txt` from `data/snapshot.json` |
+| `npm run og` | rebuilds the social card from the snapshot into `public/og.png` |
 | `npm run crawl` | discovery + README enrichment → `data/raw.json` (+ `data/cache/cards/`) |
 | `npm run snapshot` | `data/raw.json` → `data/snapshot.json` + `llms.txt` (offline, seconds) |
 | `npm run refresh` | `crawl` then `snapshot` |
@@ -99,7 +106,7 @@ Environment:
 
 | Variable | Used by | Default |
 | :-- | :-- | :-- |
-| `HF_TOKEN` | `npm run crawl` | unset — anonymous, lower rate limits |
+| `HF_TOKEN` | `npm run crawl`, the refresh workflow | **required in CI** — anonymous crawls get rate-limited |
 | `NEXT_PUBLIC_SITE_URL` | `sitemap.ts`, `robots.ts` | `https://heretico.sdad.pro` |
 
 `npm run snapshot` deliberately does not touch the network, so parser, scoring
@@ -121,16 +128,23 @@ All routes are prerendered; `trailingSlash` is on, so every URL ends in `/`.
 | `/repo/<owner>/<name>/` | One Hugging Face artifact that published metrics: evidence, provenance, source link |
 | `/methodology/` | How scoring, confidence and provenance work, and what the data cannot say |
 | `/sitemap.xml`, `/robots.txt` | Generated from the snapshot at build time |
-| `/llms.txt` | Plain-text guide for language models, plus JSON-LD `Dataset` records on model pages |
+| `/llms.txt` | Generated from the snapshot: a plain-text guide for language models |
+| `/og.png`, `/icon.svg` | Social card and mark, also generated; see [Brand](#brand) |
+
+Every path is **lowercase**. Netlify lowercases whatever it serves, so a
+mixed-case directory is only reachable through a 301 and its canonical tag
+points at a redirecting URL. `pathSegments` in `lib/dataset.ts` generates the
+lowercase form and every lookup folds case to match.
 
 Filtering, sorting, search and pagination run client-side against
 `/data/index.json`, with the query reflected in the URL (`?q=`, `?family=`,
 `?size=`, `?format=`, `?kind=`, `?version=`, `?sort=`, `?page=`, …) so a filtered
-view can be linked or bookmarked.
+view can be linked or bookmarked. An artifact that published no metrics gets no
+`/repo/` page; it still appears in its model's artifact table, linking to the Hub.
 
 ---
 
-## Verification
+## Trust
 
 Every number is self-reported; this site never re-runs an evaluation. What it
 can check is what stands behind a number:
@@ -200,6 +214,50 @@ a best pick, or if coverage drops below the depth floor.
 
 ---
 
+## Brand
+
+The mark is the quantity the site ranks: three bars falling 100 → 0, refusals
+going to zero, with the green floor as the only colour in it. It is geometry, not
+a picture, so it stays crisp at 16 px.
+
+| Asset | Source |
+| :-- | :-- |
+| `public/icon.svg` | hand-authored, the master |
+| `src/app/favicon.ico` | 16/32/48 ICO generated from the master |
+| `public/apple-touch-icon.png`, `public/icon-512.png` | 192 and 512 PNG rasters |
+| `public/og.png` | 1200×630 social card, generated on every build |
+
+```bash
+npm run og        # regenerate public/og.png from the current snapshot
+npm run build     # already runs `npm run og` as its last step
+```
+
+The card is rendered by `app/og/route.tsx` with `ImageResponse`, reading the
+snapshot, so it cannot advertise counts the site has moved past — the daily
+refresh regenerates it along with everything else.
+
+It is a **route handler, not the `opengraph-image` file convention**. That
+convention emits its URL with a cache-busting query string
+(`/opengraph-image?5d66f8a9…`), which resolves to no file on a static host, so
+every share would have 404'd its image. `scripts/build-og.ts` moves the generated
+file to `out/og.png`, which is the path the metadata advertises. `verify/seo.mjs`
+asserts both facts.
+
+## Interface
+
+Dark only. The site reads metrics off a screen, so the palette is fixed rather
+than flipped: one ink ramp, one surface ramp, three accents that mean the same
+thing everywhere (verified = emerald, unverified = amber, best/Pareto = indigo).
+
+The light value of an element is never written, so there is no `dark:` variant
+to forget to update. `globals.css` holds the ramps as tokens and states the
+contrast floor: `400` is the muted floor for body copy at 7.8:1, because `500`
+is 4.1:1 on the surface and fails.
+
+Browser surfaces are themed rather than left at OS defaults: selection, caret,
+focus rings, placeholder, scrollbars, checkbox and radio accents, and the native
+`<select>` popup. `prefers-reduced-motion` is honoured.
+
 ## Deploy
 
 `netlify.toml` is complete — build `npm run build`, publish `out/`, Node 22, with
@@ -213,10 +271,17 @@ domain, then deploy. No functions, no build plugins, no database.
 
 1. restore `data/cache/` via `actions/cache`,
 2. run the suites and static checks,
-3. crawl with `HF_TOKEN` (set it as a repository secret for higher rate limits),
+3. crawl with the `HF_TOKEN` secret,
 4. rebuild and validate the snapshot,
-5. build the site and serve the export to check it,
-6. commit `data/snapshot.json` if the data changed — Netlify then redeploys.
+5. build the site, then serve the export and check it,
+6. commit `data/snapshot.json` and `public/llms.txt` if the data changed —
+   Netlify then redeploys.
+
+A push that touches `src/`, `scripts/`, `tests/` or the pipeline runs the same
+gates, so a build that prerenders but does not serve is caught before it reaches
+Netlify. The bot's own commit is also what keeps the schedule alive: GitHub
+disables scheduled workflows in a public repository after 60 days without
+activity.
 
 Because the cache is keyed by commit sha, a daily run only fetches cards whose
 repository actually changed.
@@ -246,12 +311,13 @@ written by hand and left to rot.
 
 | Path | Contents |
 | :-- | :-- |
-| `src/app/` | route tree, all prerendered |
+| `src/app/` | route tree, all prerendered; `opengraph-image` was removed in favour of a committed `og.png` |
 | `src/components/` | tables, badges and the two client explorers |
 | `src/lib/parse/` | model-card → structured metrics |
 | `src/lib/ingest/` | classification, origin resolution, recipe grouping |
 | `src/lib/scoring.ts`, `query.ts`, `dataset.ts` | scoring, filtering, build-time snapshot access |
-| `scripts/` | offline pipeline (`crawl.ts`, `build-snapshot.ts`, `sync-public.ts`) and the gate oracles |
+| `scripts/` | offline pipeline (`crawl.ts`, `build-snapshot.ts`, `sync-public.ts`, `build-llms-txt.ts`) and the gate oracles |
+| `public/` | generated browser artefacts: `data/index.json`, `llms.txt`, `og.png`, icons |
 | `tests/` | Vitest suites plus verbatim real model cards in `tests/fixtures/cards/` |
 | `data/` | committed `snapshot.json`; local `raw.json` and card caches |
 | `AGENTS.md` files | per-directory contracts (DOX tree), enforced by gate G10 |
@@ -259,25 +325,42 @@ written by hand and left to rot.
 
 ## Caveats
 
-- **Every number is self-reported by the model author.** Nothing here is
-  re-measured; the directory reports what cards claim and links to the source.
-  `unverified` means nothing corroborates the card, not that it is false.
-- **A KL below 1e-4 is not a measurement.** Abliteration moves weights, so the
-  reported divergence cannot round to nothing. Such rows are flagged
-  `implausible` and cannot be verified.
+Read these before quoting a number from this site.
+
+- **Every metric is self-reported by the publisher.** Nothing here is
+  re-measured; the directory reports what cards claim and links to the source
+  snippet it parsed.
+- **`unverified` is not a claim that a row is false.** It means nothing
+  corroborates the card. A publisher who uploads real weights and writes a
+  dishonest number is verified and still wrong. Verification narrows the cheap
+  attack; it does not close the problem.
+- **Downloads are artifact counters, not people.** The headline sums every
+  repository under a base model, so one ablation published 113 times counts 113
+  times, and the three largest recipes are roughly 18% of the total. Read it as
+  activity, not adoption.
+- **A KL below `1e-4` is not a measurement.** Abliteration moves weights, so
+  the reported divergence cannot round to nothing. 27 recipes claim one; they are
+  flagged `implausible`, cannot be verified, and can never hold rank 1.
+- **Refusal rates only compare within one card's own evaluation setup.** A card
+  that omits a denominator stays unranked. Heretic's counter is a keyword
+  heuristic and over-counts compliance wrapped in a disclaimer.
+- **KL is hardware- and library-dependent.** Order-of-magnitude differences
+  matter; 0.01 does not.
+- A range such as `0-1/100` is recorded as its worst case (`1/100`).
+- **Coverage is uneven on purpose.** 6,191 of 8,214 discovered repositories are
+  verified and only those appear on a page; the rest are counted, not linked. 54
+  base models have no verified conversion and therefore show no best version.
+- **An "Inherited" badge means the cited source publishes exactly those
+  numbers.** It never appears on a repo that published a pair of its own.
 - **An artifact with no published metrics gets no `/repo/` page.** It still
   appears in its model's artifact table, linking to the Hub.
-- Refusal rates are only comparable within a card's own evaluation setup, and a
-  card that omits a denominator stays unranked.
-- A range such as `0–1/100` is recorded as its worst case (`1/100`).
-- A card claiming zero KL *and* zero refusals cannot be measured (KL 0 means the
-  weights are unchanged) and is flagged `implausible` in the table.
-- Coverage is uneven on purpose: 6,188 of 8,209 discovered repositories are
-  verified, and only those appear on a page; the rest are counted, not linked.
-- An "Inherited" badge means the cited source publishes exactly those numbers.
-  It never appears on a repo that published a pair of its own.
+- Model names change fast. If a family is missing, the fallback groups it under
+  the first meaningful token; it will still be searchable by its exact name.
+- The crawler keeps the previous parse when a fetch fails, so a rate-limited
+  repo reappears the next day rather than vanishing. A run that still loses more
+  than 4% of coverage is refused.
 - Model weights and cards belong to their authors; this site only reads public
-  metadata from the Hugging Face Hub.
+  Hub metadata.
 
 ## Contributing
 

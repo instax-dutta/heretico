@@ -7,7 +7,8 @@ model directory) that filter the snapshot in the browser.
 
 ## Ownership
 
-- `ui.tsx` — primitives (Card, Stat, Badge, ScorePill, Breadcrumbs)
+- `ui.tsx` — primitives (Card, Stat, Badge, ScorePill, VerificationBadge,
+  Breadcrumbs)
 - `RecipeTable.tsx` — ranked table, safe in server and client trees
 - `LeaderboardExplorer.tsx` — client filters, URL state, pagination
 - `ModelExplorer.tsx` — client model search and pagination
@@ -24,6 +25,13 @@ model directory) that filter the snapshot in the browser.
 - Every full-dataset table is paged. The model index has ~1k origins and a row is
   ~8 elements; rendering them all costs thousands of DOM nodes on a phone.
 - Components never compute scores themselves; use `lib/scoring` and `lib/query`.
+- No `dark:` variant. The site is dark-only, so an element carries its dark value
+  directly; see `src/app/AGENTS.md`.
+- Interactive rows and controls need a visible hover *and* a visible focus state.
+  Checkbox and radio inputs take `accent-emerald-400` so they do not render as
+  OS defaults against the dark surface.
+- Filter rows wrap by content, not by a fixed grid: checkboxes use
+  `whitespace-nowrap` so a label never breaks across two lines at 390px.
 
 ## Work Guidance
 

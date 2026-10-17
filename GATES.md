@@ -32,17 +32,17 @@ Scope: A working, tested static directory of Heretic models — crawl → parse 
 - [x] G6: The committed snapshot is schema-valid, internally consistent and covers real data at the required depth
   CHECK: node scripts/verify/snapshot.mjs
   EXPECT: SNAPSHOT VERIFIED
-  EVIDENCE: `SNAPSHOT VERIFIED` — 8209 indexed / 6188 verified repos, 1046 origins, 1016 recipes (886 verified / 130 unverified), 1265 direct conversions, 3869 repos with metrics, 62.7M downloads; Pareto/best-pick recomputed from published rows, every `inherited` pair matches the repo it cites, every verified artifact that published its own metrics is on a leaderboard row, no unverified recipe holds a best pick, and coverage has not fallen more than 4% against the committed snapshot (a crawl hitting HTTP 429 otherwise publishes a quietly smaller index)
+  EVIDENCE: `SNAPSHOT VERIFIED` — 8214 indexed / 6191 verified repos, 1046 origins, 1007 recipes (883 verified / 124 unverified), 1265 direct conversions, 3844 repos with metrics, 62.7M downloads, 27 implausible, 54 origins with no verified best pick; Pareto/best-pick recomputed from published rows, every `inherited` pair matches the repo it cites, every verified artifact that published its own metrics is on a leaderboard row, no unverified recipe holds a best pick, and coverage has not fallen more than 4% against the committed snapshot (a crawl hitting HTTP 429 otherwise publishes a quietly smaller index)
 
 - [x] G7: A production static export serves every functional route with real snapshot content
   CHECK: node scripts/verify/app-smoke.mjs
   EXPECT: APP SMOKE PASSED
-  EVIDENCE: `APP SMOKE PASSED` — 10 routes checked against the export, 1046 model pages + 3869 repo pages prerendered; the model index renders 50 rows per page and each model artifact table caps at 50 rows. Export is 463 MB / 25,988 files, down from 637 MB / 37,582
+  EVIDENCE: `APP SMOKE PASSED` — 10 routes checked against the export, 1046 model pages + 3869 repo pages prerendered; the model index renders 50 rows per page and each model artifact table caps at 50 rows. Export is 466 MB / 26,002 files, down from 637 MB / 37,582
 
 - [x] G8: SEO surfaces (metadata, sitemap, robots) are generated from the snapshot and every sitemap URL resolves
   CHECK: node scripts/verify/seo.mjs
   EXPECT: SEO SURFACES VERIFIED
-  EVIDENCE: `SEO SURFACES VERIFIED` — 5189 sitemap URLs all resolve, unique titles on sampled pages. `/repo/` is generated only for the 3869 artifacts that published metrics. Every generated path is lowercase because Netlify lowercases what it serves: a mixed-case directory is only reachable through a 301, and the canonical tag pointed at a redirecting URL. Model pages carry JSON-LD `Dataset` records with `dateModified`, and `public/llms.txt` is generated from the snapshot
+  EVIDENCE: `SEO SURFACES VERIFIED` — 5189 sitemap URLs all resolve, unique titles on sampled pages. `/repo/` is generated only for the 3872 artifacts that published metrics. `og:image` and every icon resolve to a real file with no query string, and no Next.js template asset ships. Every generated path is lowercase because Netlify lowercases what it serves: a mixed-case directory is only reachable through a 301, and the canonical tag pointed at a redirecting URL. Model pages carry JSON-LD `Dataset` records with `dateModified`, and `public/llms.txt` is generated from the snapshot
 
 - [x] G9: Freshness automation is wired: incremental crawl skips unchanged repos and the scheduled workflow rebuilds and validates the snapshot
   CHECK: node scripts/verify/automation.mjs
