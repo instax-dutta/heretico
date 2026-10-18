@@ -23,6 +23,7 @@ import {
   repoHref,
 } from "@/lib/format";
 import type { LeaderboardRow } from "@/lib/query";
+import { SITE_URL } from "@/lib/site";
 import type { Origin, Recipe, RepoRecord } from "@/lib/types";
 
 export const dynamicParams = false;
@@ -75,18 +76,17 @@ function confLabel(confidence: RepoRecord["metrics"]["confidence"]): string {
  * two source metrics and their provenance travel together.
  */
 function datasetLd(origin: Origin, best: Recipe | null, updatedAt: string): string {
-  const site = process.env.NEXT_PUBLIC_SITE_URL ?? "https://heretico.sdad.pro";
   return JSON.stringify({
     "@context": "https://schema.org",
     "@type": "Dataset",
     name: `Heretic conversions of ${origin.id}`,
     description: `Abliterated (Heretic) versions of ${origin.id}, ranked by KL divergence from the original model and remaining refusal rate. Metrics are self-reported by each publisher and are never re-measured.`,
-    url: `${site}/models/${origin.id.toLowerCase()}/`,
+    url: `${SITE_URL}/models/${origin.id.toLowerCase()}/`,
     // An assistant citing this needs to know how old it is; without a date it
     // will present a ranking that refreshes daily as if it were permanent.
     dateModified: updatedAt,
     temporalCoverage: new Date(updatedAt).toISOString().slice(0, 10),
-    creator: { "@type": "Organization", name: "Heretic Directory", url: site },
+    creator: { "@type": "Organization", name: "Heretic Directory", url: SITE_URL },
     isAccessibleForFree: true,
     ...(best
       ? {

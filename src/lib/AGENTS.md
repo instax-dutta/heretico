@@ -13,6 +13,10 @@ Pure domain logic and the build-time dataset loader.
 - `snapshot.ts` — assembles the published snapshot from raw crawl data
 - `dataset.ts` — server-only loader for `data/snapshot.json`
 - `format.ts` — display formatting
+- `site.ts` — the canonical origin, the only place the domain is written. Every
+  consumer (canonical tags, sitemap, robots.txt, JSON-LD, the OG card, llms.txt)
+  imports it; `verify/seo.mjs` asserts they agree, because a stale or
+  half-changed domain renders fine and breaks only the indexing.
 - `parse/`, `ingest/` — see child docs
 
 ## Local Contracts

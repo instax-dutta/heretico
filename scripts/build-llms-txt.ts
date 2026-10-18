@@ -9,6 +9,7 @@
  */
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { SITE_URL } from "../src/lib/site";
 import type { Snapshot } from "../src/lib/types";
 
 const ROOT = process.cwd();
@@ -91,7 +92,7 @@ Data refreshes daily from the public Hub. The index is independent and not
 endorsed by the Heretic maintainers.
 `;
 
-const site = process.env.NEXT_PUBLIC_SITE_URL ?? "https://heretico.sdad.pro";
+const site = SITE_URL;
 const urls =
   snapshot.origins.length +
   snapshot.families.length +

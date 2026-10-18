@@ -77,8 +77,47 @@ for (const href of iconHrefs) {
 
 // The default Next.js scaffold ships these to every visitor. None are used.
 for (const dead of ["next.svg", "vercel.svg", "globe.svg", "window.svg", "file.svg"]) {
-  assert(!existsSync(path.join(OUT, dead)), `Next.js template asset still shipping: ${dead}`);
+  assert(!existsSync(path.join(OUT, dead)), "Next.js template asset still shipping: " + dead);
 }
+
+// One origin everywhere. A stale or half-changed domain is invisible on the
+// site: every page renders, but the canonical tags, the sitemap, robots.txt and
+// the OG image all point somewhere that may not resolve. That is how the site
+// shipped serving hdir.sdad.pro with 5,192 sitemap URLs on heretico.sdad.pro,
+// which 404s.
+const declared = process.env.NEXT_PUBLIC_SITE_URL ?? "https://hdir.sdad.pro";
+const origin = new URL(declared).origin;
+
+const canonicals = [
+  ...readFileSync(path.join(OUT, "index.html"), "utf8").matchAll(
+    /<link rel="canonical" href="([^"]+)"/g,
+  ),
+].map((m) => m[1]);
+assert(canonicals.length > 0, "homepage declares no canonical");
+for (const href of canonicals) {
+  assert(href.startsWith(origin), "canonical points off-origin: " + href);
+}
+
+for (const href of [ogImage]) {
+  assert(href.startsWith(origin), "og:image points off-origin: " + href);
+}
+
+assert(
+  robots.includes("Sitemap: " + origin + "/sitemap.xml"),
+  "robots.txt declares a sitemap off-origin",
+);
+assert(
+  robots.includes("Host: " + origin.replace(/^https?:\/\//, "")),
+  "robots.txt declares a Host off-origin",
+);
+
+const sitemapOrigins = new Set(
+  urls.map((url) => new URL(url).origin),
+);
+assert(
+  sitemapOrigins.size === 1 && sitemapOrigins.has(origin),
+  `sitemap mixes origins: ${[...sitemapOrigins].join(", ")} (expected ${origin})`,
+);
 
 console.log(
   `SEO surfaces: ${urls.length} sitemap URLs, ${titles.length} sampled pages with unique titles.`,

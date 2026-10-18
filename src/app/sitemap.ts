@@ -1,9 +1,10 @@
 import type { MetadataRoute } from "next";
 import { getMeasuredRepos, getSnapshot } from "@/lib/dataset";
+import { SITE_URL } from "@/lib/site";
 
 export const dynamic = "force-static";
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://heretico.sdad.pro";
+const BASE = SITE_URL;
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const snapshot = getSnapshot();

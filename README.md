@@ -11,7 +11,7 @@ This site reads those cards, works out what each repository actually *is*,
 groups the artifacts that belong to the same ablation, and ranks the results.
 
 Ships as a static export for Netlify (free tier); `NEXT_PUBLIC_SITE_URL`
-defaults to `https://heretico.sdad.pro`.
+defaults to `https://hdir.sdad.pro`.
 
 At the time of the committed snapshot: **8,214 repositories indexed, 6,191
 verified, 1,046 canonical upstream models, 1,007 measured ablation recipes,
@@ -107,7 +107,7 @@ Environment:
 | Variable | Used by | Default |
 | :-- | :-- | :-- |
 | `HF_TOKEN` | `npm run crawl`, the refresh workflow | **required in CI** — anonymous crawls get rate-limited |
-| `NEXT_PUBLIC_SITE_URL` | `sitemap.ts`, `robots.ts` | `https://heretico.sdad.pro` |
+| `NEXT_PUBLIC_SITE_URL` | `lib/site.ts`, and everything that reads it | `https://hdir.sdad.pro` |
 
 `npm run snapshot` deliberately does not touch the network, so parser, scoring
 and classification changes can be re-applied to an existing crawl.

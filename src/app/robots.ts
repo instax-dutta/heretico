@@ -1,13 +1,12 @@
 import type { MetadataRoute } from "next";
+import { SITE_HOST, SITE_URL } from "@/lib/site";
 
 export const dynamic = "force-static";
-
-const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://heretico.sdad.pro";
 
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: [{ userAgent: "*", allow: "/" }],
-    sitemap: `${BASE}/sitemap.xml`,
-    host: BASE,
+    sitemap: `${SITE_URL}/sitemap.xml`,
+    host: SITE_HOST,
   };
 }

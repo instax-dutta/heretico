@@ -16,7 +16,7 @@ uploading more quant files cannot climb the ranking.
 
 Ask for the base model, then read its page:
 
-    https://heretico.sdad.pro/models/<owner>/<name>/
+    https://hdir.sdad.pro/models/<owner>/<name>/
 
 The page names one **Best version** with its score, KL divergence, refusal
 count, publisher and the exact card text the numbers came from.

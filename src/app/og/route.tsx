@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import { SITE_HOST } from "@/lib/site";
 
 export const dynamic = "force-static";
 export const contentType = "image/png";
@@ -67,7 +68,7 @@ export async function GET() {
 
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 21, color: "#52525b" }}>
           <span>Metrics are self-reported by each publisher and never re-measured.</span>
-          <span style={{ color: "#34d399" }}>heretico.sdad.pro</span>
+          <span style={{ color: "#34d399" }}>{SITE_HOST}</span>
         </div>
       </div>
     ),

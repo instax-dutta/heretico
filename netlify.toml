@@ -6,6 +6,15 @@
   NODE_VERSION = "22"
   NPM_FLAGS = "--no-audit --no-fund"
 
+# The site moved from heretico.sdad.pro to hdir.sdad.pro. Redirects only fire
+# for a domain attached to this site, so the old name must be added back under
+# Domain management for these to take effect; unattached, it returns 404.
+[[redirects]]
+  from = "https://heretico.sdad.pro/*"
+  to = "https://hdir.sdad.pro/:splat"
+  status = 301
+  force = true
+
 # HTML is rebuilt on every snapshot commit, so revalidate rather than serve a
 # stale leaderboard to a crawler or an assistant.
 [[headers]]
