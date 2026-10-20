@@ -31,16 +31,47 @@ export function RecipeTable({
         <thead>
           <tr className="border-b text-left text-xs uppercase tracking-wide text-zinc-500 border-zinc-800">
             {showRank ? <th className="w-12 py-2 pr-2 font-medium">#</th> : null}
-            {showOrigin ? <th className="py-2 pr-3 font-medium">Model</th> : null}
-            <th className="py-2 pr-3 font-medium">Author</th>
-            <th className="py-2 pr-3 text-right font-medium">Params</th>
-            <th className="py-2 pr-3 text-right font-medium" title="KL divergence from the original model">
+            {showOrigin ? (
+              <th className="py-2 pr-3 font-medium" title="The original model this conversion was made from">
+                Model
+              </th>
+            ) : null}
+            <th className="py-2 pr-3 font-medium" title="Who published the conversion">
+              Author
+            </th>
+            <th
+              className="py-2 pr-3 text-right font-medium"
+              title="Model size in billions of parameters"
+            >
+              Params
+            </th>
+            <th
+              className="py-2 pr-3 text-right font-medium"
+              title="KL divergence: how far the abliterated weights moved from the original, measured on harmless prompts. Lower is better."
+            >
               KL
             </th>
-            <th className="py-2 pr-3 text-right font-medium">Refusals</th>
-            <th className="py-2 pr-3 text-right font-medium">Score</th>
-            <th className="py-2 pr-3 font-medium">Evidence</th>
-            <th className="py-2 text-right font-medium">Downloads</th>
+            <th
+              className="py-2 pr-3 text-right font-medium"
+              title="How many of the publisher's harmful prompts the model still refuses. Lower is better."
+            >
+              Refusals
+            </th>
+            <th
+              className="py-2 pr-3 text-right font-medium"
+              title="KL and refusals combined, weighted equally, out of 100. Higher is better."
+            >
+              Score
+            </th>
+            <th
+              className="py-2 pr-3 font-medium"
+              title="What backs these numbers: a verified conversion ships real weights, an unverified one rests on its card alone"
+            >
+              Evidence
+            </th>
+            <th className="py-2 text-right font-medium" title="Hub download counter, not a count of people">
+              Downloads
+            </th>
           </tr>
         </thead>
         <tbody>

@@ -8,10 +8,11 @@ model directory) that filter the snapshot in the browser.
 ## Ownership
 
 - `ui.tsx` — primitives (Card, Stat, Badge, ScorePill, VerificationBadge,
-  Breadcrumbs)
+  Breadcrumbs, MetricLegend)
 - `RecipeTable.tsx` — ranked table, safe in server and client trees
 - `LeaderboardExplorer.tsx` — client filters, URL state, pagination
 - `ModelExplorer.tsx` — client model search and pagination
+- `Glossary.tsx` — plain-language definitions for every term the tables use
 
 ## Local Contracts
 
@@ -25,6 +26,10 @@ model directory) that filter the snapshot in the browser.
 - Every full-dataset table is paged. The model index has ~1k origins and a row is
   ~8 elements; rendering them all costs thousands of DOM nodes on a phone.
 - Components never compute scores themselves; use `lib/scoring` and `lib/query`.
+- **Jargon is never left undefined.** A term used in a table header, a badge or
+  a sentence is defined in `Glossary.tsx` and reachable from the page that uses
+  it. `MetricLegend` spells out the numeric columns in one line under the table,
+  because a column header that fits a phone cannot explain itself.
 - No `dark:` variant. The site is dark-only, so an element carries its dark value
   directly; see `src/app/AGENTS.md`.
 - Interactive rows and controls need a visible hover *and* a visible focus state.

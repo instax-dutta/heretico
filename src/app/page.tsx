@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Glossary } from "@/components/Glossary";
 import { RecipeTable } from "@/components/RecipeTable";
-import { Card, Stat } from "@/components/ui";
+import { Card, MetricLegend, Stat } from "@/components/ui";
 import { getSnapshot, getTopRows } from "@/lib/dataset";
 import { familyHref, formatCompact, formatDate } from "@/lib/format";
 
@@ -12,7 +13,14 @@ export const metadata: Metadata = {
 export default function HomePage() {
   const snapshot = getSnapshot();
   const top = getTopRows(10);
-  const families = [...snapshot.families].sort((a, b) => b.originCount - a.originCount).slice(0, 12);
+  // A "family" of one model is not a family: it is a model whose name the
+  // classifier could not place. Showing those next to Qwen and Llama makes the
+  // browse grid noise, so they live on the families page instead.
+  const families = [...snapshot.families]
+    .filter((family) => family.originCount >= 2)
+    .sort((a, b) => b.originCount - a.originCount)
+    .slice(0, 12);
+  const smallFamilies = snapshot.families.filter((family) => family.originCount < 2).length;
 
   return (
     <div className="flex flex-col gap-10">
@@ -21,9 +29,10 @@ export default function HomePage() {
           Find the best Heretic version of any open model.
         </h1>
         <p className="max-w-2xl text-zinc-400">
-          Every Heretic (abliterated) conversion on Hugging Face, resolved back to the
-          model it came from and ranked by the two numbers that actually matter: how
-          little the model drifted, and how few refusals remain.
+          &ldquo;Abliteration&rdquo; removes a model&apos;s refusal behaviour by editing its
+          weights. It works, but the weights move a little too, and that movement can cost
+          quality. Thousands of people have published the result here. This site reads their
+          model cards, works out which version is the cleanest, and ranks them.
         </p>
         <form action="/models/" method="get" className="flex max-w-xl gap-2">
           <input
@@ -40,6 +49,12 @@ export default function HomePage() {
             Find
           </button>
         </form>
+        <p className="max-w-xl text-xs text-zinc-500">
+          Search for the <strong className="font-medium text-zinc-400">original</strong> model,
+          not the uncensored one &mdash; &ldquo;Qwen3-4B&rdquo;, not
+          &ldquo;Qwen3-4B-Uncensored-Heretic&rdquo;. Every version of a model is grouped under
+          the one it came from.
+        </p>
       </section>
 
       <section className="grid grid-cols-2 gap-6 rounded-lg border p-5 sm:grid-cols-4 border-zinc-800 bg-zinc-950">
@@ -72,6 +87,7 @@ export default function HomePage() {
         <Card className="p-0">
           <div className="px-4 py-2">
             <RecipeTable rows={top} />
+            <MetricLegend />
           </div>
         </Card>
       </section>
@@ -97,18 +113,33 @@ export default function HomePage() {
             </Link>
           ))}
         </div>
+        {smallFamilies > 0 ? (
+          <p className="mt-3 text-xs text-zinc-500">
+            {smallFamilies} more groups hold a single model each. They are on the{" "}
+            <Link className="underline" href="/families/">
+              families page
+            </Link>
+            .
+          </p>
+        ) : null}
       </section>
 
-      <section className="rounded-lg border p-5 border-zinc-800 bg-zinc-950 text-zinc-400">
-        <h2 className="mb-2 font-semibold text-zinc-100">How to read this</h2>
-        <p>
-          <strong>KL</strong> measures how far the abliterated model drifted from the original —
-          lower is better. <strong>Refusals</strong> are counted on a harmful-prompt set by the
-          publisher — lower is better. The <strong>score</strong> weights both equally.{" "}
+      <section className="flex flex-col gap-4">
+        <h2 className="text-xl font-semibold tracking-tight">Before you read a number</h2>
+        <p className="max-w-3xl text-zinc-400">
+          Every number here is self-reported by whoever published the model. This site never
+          re-runs an evaluation, so what it can tell you is what stands behind a number: whether
+          the repository also ships real weights, and whether the reported damage is one an
+          abliteration can physically produce. A row that rests on its model card alone still
+          ranks, but it can never come first.
+        </p>
+        <Glossary />
+        <p className="text-sm text-zinc-500">
+          The{" "}
           <Link className="underline" href="/methodology/">
-            Full methodology
-          </Link>
-          .
+            methodology page
+          </Link>{" "}
+          has the exact scoring formula and the full list of caveats.
         </p>
       </section>
     </div>

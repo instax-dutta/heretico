@@ -24,6 +24,15 @@ plus one JSON index for browser-side filtering.
   or runtime data fetching.
 - Every dynamic route sets `dynamicParams = false` and exports
   `generateStaticParams` from the snapshot.
+- **The reader is a newcomer.** These pages are read by people who do not yet
+  know what an ablation is, what KL divergence means, or that they should
+  search for the original model rather than the uncensored one. A page must
+  either explain a term where it is used or reach `components/Glossary.tsx`,
+  and must never make the reader infer a rule (such as "search the base
+  model") from context alone.
+- A "family" of one model is not a family. The home page's browse grid shows
+  only families with two or more models and says how many single-model groups
+  exist; `/families/` lists them all and explains what they are.
 - `/repo/` generates a page only for artifacts that published metrics
   (`getMeasuredRepos`). `sitemap.ts` and the model artifact table must agree, or
   links 404. Model pages also emit JSON-LD for assistants.

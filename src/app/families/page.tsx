@@ -15,6 +15,7 @@ export default function FamiliesPage() {
   const families = [...snapshot.families].sort(
     (a, b) => b.originCount - a.originCount || a.label.localeCompare(b.label),
   );
+  const singles = families.filter((family) => family.originCount < 2).length;
 
   return (
     <div className="flex flex-col gap-6">
@@ -25,6 +26,13 @@ export default function FamiliesPage() {
           with its best-ranked Heretic conversion.
         </p>
       </header>
+
+      {singles > 0 ? (
+        <p className="text-xs text-zinc-500">
+          The {singles} groups at the bottom hold a single model each: the name could not be
+          placed in a known family, so it became a group of its own.
+        </p>
+      ) : null}
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {families.map((family) => (

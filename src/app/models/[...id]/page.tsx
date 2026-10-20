@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { RecipeTable } from "@/components/RecipeTable";
-import { Badge, Breadcrumbs, Card, ScorePill, VerificationBadge } from "@/components/ui";
+import { Badge, Breadcrumbs, Card, MetricLegend, ScorePill, VerificationBadge } from "@/components/ui";
 import {
   getFamily,
   getOrigin,
@@ -148,6 +148,23 @@ export default async function ModelPage({ params }: PageProps<"/models/[...id]">
             Original model on Hugging Face
           </a>
         </div>
+        <p className="mt-2 max-w-2xl text-sm text-zinc-400">
+          {recipes.length > 0 ? (
+            <>
+              These are the {recipes.length} published abliteration
+              {recipes.length === 1 ? "" : "s"} of{" "}
+              <strong className="font-medium text-zinc-300">{origin.displayName}</strong>. The one
+              marked <strong className="font-medium text-zinc-300">Best</strong> is the
+              cleanest verified conversion of it.
+            </>
+          ) : (
+            <>
+              No published abliteration of{" "}
+              <strong className="font-medium text-zinc-300">{origin.displayName}</strong> reports
+              both numbers yet, so none of them can be ranked. The files below are still listed.
+            </>
+          )}
+        </p>
         <div className="mt-3 flex flex-wrap gap-2 text-zinc-400">
           <Badge>{formatParams(origin.paramsB, origin.paramsActiveB, origin.moe)}</Badge>
           <Badge>{origin.family}</Badge>
@@ -240,6 +257,7 @@ export default async function ModelPage({ params }: PageProps<"/models/[...id]">
           </p>
           <div className="overflow-hidden rounded-lg border px-4 border-zinc-800 bg-zinc-950">
             <RecipeTable rows={toRows(recipes, origin)} showOrigin={false} />
+            <MetricLegend />
           </div>
         </section>
       ) : null}

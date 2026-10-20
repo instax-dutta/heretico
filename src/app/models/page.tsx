@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Glossary } from "@/components/Glossary";
 import { ModelExplorer } from "@/components/ModelExplorer";
 import { getSnapshot } from "@/lib/dataset";
 
@@ -21,9 +22,13 @@ export default function ModelsPage() {
         <h1 className="text-2xl font-semibold tracking-tight">Models</h1>
         <p className="max-w-3xl text-zinc-400">
           Search for the model you already run. Every Heretic conversion, GGUF quant and
-          derivative that descends from it is grouped under the same canonical model.
+          derivative that descends from it is grouped under the same canonical model, so one
+          search finds every version of it.
         </p>
       </header>
+
+      <Glossary title="What the columns mean" />
+
       <ModelExplorer
         initialOrigins={origins.slice(0, 100)}
         families={snapshot.families.map((family) => ({ slug: family.slug, label: family.label }))}

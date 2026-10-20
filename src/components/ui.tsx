@@ -75,8 +75,29 @@ export function VerificationBadge({ verification }: { verification: Verification
   );
 }
 
-export function Breadcrumbs({ items }: { items: { label: string; href?: string }[] }) {
+/**
+ * One line of plain language under a metrics table.
+ *
+ * The column headers have to stay short to fit a phone, which means they cannot
+ * explain themselves. This is where they are spelled out, for anyone who did
+ * not read the methodology page first.
+ */
+export function MetricLegend() {
   return (
+    <p className="mt-2 text-xs leading-5 text-zinc-500">
+      <strong className="font-medium text-zinc-400">KL</strong> = how far the weights moved
+      from the original, lower is better ·{" "}
+      <strong className="font-medium text-zinc-400">Refusals</strong> = how many harmful
+      prompts it still refuses, lower is better ·{" "}
+      <strong className="font-medium text-zinc-400">Score</strong> = both combined out of
+      100, higher is better ·{" "}
+      <strong className="font-medium text-zinc-400">Params</strong> = model size in billions
+      of parameters
+    </p>
+  );
+}
+
+export function Breadcrumbs({ items }: { items: { label: string; href?: string }[] }) {  return (
     <nav className="mb-4 flex flex-wrap items-center gap-1 text-xs text-zinc-500">
       {items.map((item, index) => (
         <span key={`${item.label}-${index}`} className="flex items-center gap-1">

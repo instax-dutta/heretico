@@ -14,6 +14,7 @@ import {
 import { SIZE_CLASSES } from "@/lib/naming";
 import type { ClientIndex } from "@/lib/query";
 import { RecipeTable } from "./RecipeTable";
+import { MetricLegend } from "./ui";
 
 const FORMATS = ["gguf", "safetensors", "mlx", "fp8", "nvfp4", "awq", "gptq", "exl", "lora"];
 const KINDS = [
@@ -270,6 +271,7 @@ export function LeaderboardExplorer({
 
       <div className="overflow-hidden rounded-lg border px-4 border-zinc-800 bg-zinc-950">
         <RecipeTable rows={result.rows} />
+        <MetricLegend />
       </div>
 
       <div className="flex items-center justify-between text-sm">

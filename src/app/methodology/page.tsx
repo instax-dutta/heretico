@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { getSnapshot } from "@/lib/dataset";
 import { formatCompact, formatDate } from "@/lib/format";
 import { WEIGHTS } from "@/lib/scoring";
@@ -23,6 +24,24 @@ export default function MethodologyPage() {
           below exists to answer that honestly.
         </p>
       </header>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="text-lg font-semibold">In plain language</h2>
+        <p>
+          Abliterating a model removes its refusal behaviour, but it also nudges the weights
+          away from the original, which can cost quality. Heretic publishes two numbers for
+          that trade-off: <strong>KL divergence</strong> (how far the weights moved, lower is
+          better) and <strong>refusals</strong> (how many harmful prompts the model still
+          refuses, lower is better). This site combines them into one score, groups the
+          different file formats of the same ablation together so they cannot compete with
+          each other, and shows you the best verified version of every model.
+        </p>
+        <p className="text-zinc-400">
+          The rest of this page is the exact version: the formula, the tie-breaks, and the
+          limits of what the data can say. A plain-language glossary of every term the tables
+          use is on the <Link className="underline" href="/">home page</Link>.
+        </p>
+      </section>
 
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">What gets ranked</h2>

@@ -260,6 +260,23 @@ Browser surfaces are themed rather than left at OS defaults: selection, caret,
 focus rings, placeholder, scrollbars, checkbox and radio accents, and the native
 `<select>` popup. `prefers-reduced-motion` is honoured.
 
+### Written for newcomers
+
+The reader does not yet know what an ablation is, what KL divergence means, or
+that they should search for the *original* model rather than the uncensored one.
+Three rules keep the pages usable for them:
+
+- **No term is used without being defined.** `components/Glossary.tsx` holds one
+  plain-language definition per term and every page that uses jargon links to
+  it. `MetricLegend` spells out the numeric columns in one line under a table,
+  because a header that fits a phone cannot explain itself.
+- **The task is stated, not implied.** The home page says in one line what
+  abliteration is, and says outright to search for the original model name.
+- **A group of one is not a group.** The home page's family grid shows only
+  families with two or more models, and says how many single-model groups exist
+  and where to see them. `/families/` explains what those groups are.
+
+
 ## Deploy
 
 `netlify.toml` is complete — build `npm run build`, publish `out/`, Node 22, with

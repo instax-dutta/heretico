@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Glossary } from "@/components/Glossary";
 import { LeaderboardExplorer } from "@/components/LeaderboardExplorer";
 import { getLeaderboardRows, getSnapshot } from "@/lib/dataset";
 import { compareForLeaderboard } from "@/lib/scoring";
@@ -26,15 +27,14 @@ export default function LeaderboardPage() {
       <header className="flex flex-col gap-2">
         <h1 className="text-2xl font-semibold tracking-tight">Leaderboard</h1>
         <p className="max-w-3xl text-zinc-400">
-          One row per ablation attempt, not per repository: a conversion and its GGUF/MLX
-          artifacts share a score, so quant spam cannot climb the list. Scores weight KL
-          divergence and refusal rate equally.{" "}
-          <a className="underline" href="/methodology/">
-            How scoring works
-          </a>
-          .
+          Every published abliteration, ranked by how little it damaged the model (KL) and how
+          few refusals are left. One row is one ablation attempt, not one repository: a
+          conversion and its GGUF and MLX files share a score, so uploading more quant files
+          cannot climb the list.
         </p>
       </header>
+
+      <Glossary title="What the columns and badges mean" />
 
       <LeaderboardExplorer
         initialRows={initialRows}

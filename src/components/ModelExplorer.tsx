@@ -88,17 +88,17 @@ export function ModelExplorer({
       <div className="grid gap-2 rounded-lg border p-3 sm:grid-cols-2 lg:grid-cols-4 border-zinc-800 bg-zinc-950">
         <label className="flex flex-col gap-1 text-xs text-zinc-500 lg:col-span-2">
           Search model
-          <input
-            type="search"
-            value={q}
-            onChange={(event) => {
-              setQ(event.target.value);
-              setPage(1);
-            }}
-            placeholder="Qwen3-4B, gemma-3-12b-it, gpt-oss-20b…"
-            className="rounded border px-2 py-1.5 border-zinc-700 bg-zinc-900 text-zinc-100"
-          />
-        </label>
+            <input
+              type="search"
+              value={q}
+              onChange={(event) => {
+                setQ(event.target.value);
+                setPage(1);
+              }}
+              placeholder="The original model, e.g. Qwen3-4B"
+              className="w-full rounded border px-2 py-1.5 border-zinc-700 bg-zinc-900 text-zinc-100"
+            />
+          </label>
         <label className="flex flex-col gap-1 text-xs text-zinc-500">
           Family
           <select
@@ -167,7 +167,8 @@ export function ModelExplorer({
       <p className="text-xs text-zinc-500">
         {filtered.length.toLocaleString("en-US")} models
         {origins === null ? " (loading full index…)" : ""} of {total.toLocaleString("en-US")} with
-        a Heretic conversion.
+                a Heretic conversion. Search by the <strong className="font-medium text-zinc-400">original</strong>{" "}
+                model name &mdash; every uncensored version of it is already grouped here.
       </p>
 
       <div className="overflow-x-auto rounded-lg border border-zinc-800 bg-zinc-950">
@@ -224,8 +225,8 @@ export function ModelExplorer({
             {visible.length === 0 ? (
               <tr>
                 <td colSpan={8} className="px-4 py-10 text-center text-zinc-500">
-                  No model matches that search yet. Try the base model name without suffixes
-                  (for example <code>Qwen3-4B</code>).
+                  No model matches that search yet. Try the original model&apos;s name without
+                  suffixes (for example <code>Qwen3-4B</code>), or clear the filters.
                 </td>
               </tr>
             ) : null}
