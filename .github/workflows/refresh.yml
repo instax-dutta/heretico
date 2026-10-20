@@ -84,6 +84,11 @@ jobs:
       - name: Build snapshot
         run: npm run snapshot
 
+      # The README states the size of the index. It is generated from the
+      # snapshot so it cannot drift; this rewrites it before the commit.
+      - name: Update README counts
+        run: npm run counts
+
       - name: Validate snapshot
         run: node scripts/verify/snapshot.mjs
 
@@ -100,7 +105,10 @@ jobs:
         run: |
           git config user.name "heretic-index-bot"
           git config user.email "actions@users@github.com"
-          git add data/snapshot.json public/llms.txt
+          # public/og.png is regenerated from the snapshot by `npm run build`, so
+          # it is committed with it. Leaving it out lets the committed card drift
+          # away from the counts the site actually shows.
+          git add data/snapshot.json public/llms.txt public/og.png README.md
           # updatedAt is stamped with the crawl time on every run, so on its own
           # it makes the diff always non-empty. Compare everything else, or a day
           # with no new repo redeploys 460 MB of identical HTML.
@@ -110,7 +118,14 @@ jobs:
             const strip = (t) => t.replace(/"updatedAt":"[^"]*"/, "\"updatedAt\":\"\"");
             const before = strip(execSync("git show HEAD:data/snapshot.json", { encoding: "utf8", maxBuffer: 1 << 28 }));
             const after = strip(fs.readFileSync("data/snapshot.json", "utf8"));
-            process.exit(before === after ? 0 : 1);
+            let ogBefore = null;
+            try {
+              ogBefore = execSync("git show HEAD:public/og.png", { encoding: "base64", maxBuffer: 1 << 26 });
+            } catch {
+              // First run: no card in HEAD yet.
+            }
+            const ogAfter = fs.readFileSync("public/og.png").toString("base64");
+            process.exit(before === after && ogBefore === ogAfter ? 0 : 1);
           '; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
             echo "Snapshot unchanged; skipping commit and redeploy."

@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "sync": "tsx scripts/sync-public.ts && tsx scripts/build-llms-txt.ts",
+    "counts": "tsx scripts/build-readme-counts.ts",
     "dev": "npm run sync && next dev",
     "build": "npm run sync && next build && npm run og",
     "start": "next start",

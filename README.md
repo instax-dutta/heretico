@@ -13,16 +13,17 @@ groups the artifacts that belong to the same ablation, and ranks the results.
 Ships as a static export for Netlify (free tier); `NEXT_PUBLIC_SITE_URL`
 defaults to `https://hdir.sdad.pro`.
 
-At the time of the committed snapshot: **8,214 repositories indexed, 6,191
-verified, 1,046 canonical upstream models, 1,007 measured ablation recipes,
-1,265 direct Heretic conversions**, across 62.7M downloads. The index refreshes
-itself daily; see [Freshness](#freshness).
+<!-- counts:begin -->
+At the time of the committed snapshot: **8,276 repositories indexed, 6,234 verified, 1,050 canonical upstream models, 1,009 measured ablation recipes (885 verified, 124 unverified), 1,267 direct Heretic conversions**, across 63.5M downloads. 616 of the 1,050 base models have no verified conversion and therefore show no best version.
+<!-- counts:end -->
 
-Those counts are not the interesting ones. 8,214 repositories collapse to 1,046
-base models because one ablation is frequently published as a safetensors build
-plus a dozen GGUF quants, and all of those share one row. Of the 1,007 measured
-ablations, **883 are verified** and 124 are not; 54 base models have no verified
-conversion at all and therefore show no best version.
+The index refreshes itself daily; see [Freshness](#freshness).
+
+Those counts are not the interesting ones. Most repositories collapse into far
+fewer base models, because one ablation is frequently published as a safetensors
+build plus a dozen GGUF quants, and all of those share one row. The count that
+matters is how many base models have at least one *verified* conversion, since
+an uncorroborated row can never take rank 1.
 
 ---
 
@@ -96,6 +97,7 @@ Commands:
 | `npm run build` | `sync` then `next build` → static export in `out/` |
 | `npm run sync` | writes `public/data/index.json` and `public/llms.txt` from `data/snapshot.json` |
 | `npm run og` | rebuilds the social card from the snapshot into `public/og.png` |
+| `npm run counts` | rewrites the index-size block at the top of this README from the snapshot |
 | `npm run crawl` | discovery + README enrichment → `data/raw.json` (+ `data/cache/cards/`) |
 | `npm run snapshot` | `data/raw.json` → `data/snapshot.json` + `llms.txt` (offline, seconds) |
 | `npm run refresh` | `crawl` then `snapshot` |
@@ -347,9 +349,9 @@ Read these before quoting a number from this site.
 - **KL is hardware- and library-dependent.** Order-of-magnitude differences
   matter; 0.01 does not.
 - A range such as `0-1/100` is recorded as its worst case (`1/100`).
-- **Coverage is uneven on purpose.** 6,191 of 8,214 discovered repositories are
-  verified and only those appear on a page; the rest are counted, not linked. 54
-  base models have no verified conversion and therefore show no best version.
+- **Coverage is uneven on purpose.** Most discovered repositories are verified,
+  and only those appear on a page; the rest are counted, not linked. The
+  generated counts above give the exact figures for the committed snapshot.
 - **An "Inherited" badge means the cited source publishes exactly those
   numbers.** It never appears on a repo that published a pair of its own.
 - **An artifact with no published metrics gets no `/repo/` page.** It still

@@ -29,6 +29,14 @@ for (const repo of snapshot.repos) {
   check(!repoById.has(repo.id), `duplicate repo ${repo.id}`);
   repoById.set(repo.id, repo);
 }
+// Recipe ids are collected before the repo loop so that loop can check every
+// recipeId points at a recipe that exists.
+const recipeIds = new Set();
+for (const recipe of snapshot.recipes) {
+  check(!recipeIds.has(recipe.id), `duplicate recipe ${recipe.id}`);
+  recipeIds.add(recipe.id);
+}
+const recipesByOrigin = new Map();
 // Built before the checks below, because inherited metrics cite a source that may
 // be declared later in the list.
 for (const repo of snapshot.repos) {
@@ -54,8 +62,13 @@ for (const repo of snapshot.repos) {
   }
   if (repo.metrics.refusals !== null) {
     check(repo.metrics.refusalTotal > 0, `missing refusal denominator on ${repo.id}`);
+    check(repo.metrics.refusals >= 0, `negative refusal count on ${repo.id}`);
     check(repo.metrics.refusals <= repo.metrics.refusalTotal, `refusals exceed total on ${repo.id}`);
   }
+  check(
+    repo.recipeId === null || recipeIds.has(repo.recipeId),
+    `repo ${repo.id} points at unknown recipe ${repo.recipeId}`,
+  );
 }
 
 // Every artifact that published its own numbers must reach the leaderboard,
@@ -68,11 +81,7 @@ for (const repo of snapshot.repos) {
   }
 }
 
-const recipeIds = new Set();
-const recipesByOrigin = new Map();
 for (const recipe of snapshot.recipes) {
-  check(!recipeIds.has(recipe.id), `duplicate recipe ${recipe.id}`);
-  recipeIds.add(recipe.id);
   check(originById.has(recipe.originId), `recipe ${recipe.id} points at unknown origin`);
   check(recipe.refusalTotal > 0, `recipe ${recipe.id} has no refusal denominator`);
   check(recipe.refusals >= 0 && recipe.refusals <= recipe.refusalTotal, `recipe ${recipe.id} refusal range`);
@@ -105,6 +114,19 @@ for (const recipe of snapshot.recipes) {
     Math.abs(recipe.refusalRate - recipe.refusals / recipe.refusalTotal) < 1e-9,
     `recipe ${recipe.id} refusalRate inconsistent`,
   );
+  // The recipe's numbers are the evidence repo's numbers. If they drift, every
+  // /repo/ page that cites this recipe is quoting a card that says something
+  // else.
+  const evidence = repoById.get(recipe.evidenceRepoId);
+  check(Boolean(evidence), `recipe ${recipe.id} evidence repo ${recipe.evidenceRepoId} is not published`);
+  if (evidence) {
+    check(
+      evidence.metrics.kl === recipe.kl &&
+        evidence.metrics.refusals === recipe.refusals &&
+        evidence.metrics.refusalTotal === recipe.refusalTotal,
+      `recipe ${recipe.id} numbers do not match its evidence repo ${recipe.evidenceRepoId}`,
+    );
+  }
 
   const list = recipesByOrigin.get(recipe.originId) ?? [];
   list.push(recipe);

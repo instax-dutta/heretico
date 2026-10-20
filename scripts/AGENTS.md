@@ -19,6 +19,10 @@ Offline data pipeline and the runnable oracles behind `GATES.md`.
   never hand-edited: a written file would keep describing a snapshot the site
   has already moved past. Placeholders are `{UPPER_SNAKE}` and must all resolve;
   the code reads `snapshot.totals.*`, not the top level.
+- `build-readme-counts.ts` — rewrites the README's `<!-- counts:begin -->` block
+  from the snapshot, so the index size the README states cannot drift from the
+  data. `--check` exits non-zero when the block is stale; `verify/dox.mjs` runs
+  it, so a hand-edited number fails the gate instead of rotting.
 - `lib/hf.ts` — Hub REST client (pagination, retries, timeouts, expansions)
 - `lib/incremental.ts` — sha + `PARSER_VERSION` keyed cache decision (unit-tested)
 - `lib/pool.ts` — bounded concurrency
@@ -30,6 +34,8 @@ Offline data pipeline and the runnable oracles behind `GATES.md`.
 - `verify/snapshot.mjs` also compares coverage against the committed snapshot and
   refuses a refresh that loses more than 4%. Without it a crawl that hits HTTP
   429 quietly publishes a smaller index while every absolute floor still passes.
+  It also re-derives each recipe's numbers from the repo it cites as evidence,
+  so a `/repo/` page can never quote a card that says something else.
 
 ## Local Contracts
 

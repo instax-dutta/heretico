@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
-import { assert } from "./util.mjs";
+import { assert, runQuiet } from "./util.mjs";
 
 const REQUIRED = [
   "AGENTS.md",
@@ -57,6 +57,15 @@ assert(existsSync("LICENSE"), "missing LICENSE");
 const license = readFileSync("LICENSE", "utf8");
 assert(/^MIT License/m.test(license), "LICENSE is not MIT");
 assert(readme.includes("(LICENSE)"), "README does not link the LICENSE file");
+
+// The README states the size of the index. Those numbers are generated from the
+// snapshot, so a hand-edit that lies is caught here instead of going stale.
+assert(readme.includes("<!-- counts:begin -->"), "README.md is missing the counts block");
+const counts = runQuiet("npx", ["tsx", "scripts/build-readme-counts.ts", "--check"]);
+assert(
+  counts.status === 0,
+  `README.md counts are stale. Run \`npm run counts\`. ${counts.stderr ?? ""}`,
+);
 
 console.log(`DOX tree: ${REQUIRED.length + 2} documents checked.`);
 console.log("DOX VERIFIED");
