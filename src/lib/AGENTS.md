@@ -36,6 +36,10 @@ Pure domain logic and the build-time dataset loader.
   fourth value without a signal the snapshot actually carries.
 - `scoring.WEIGHTS` is the only place the 50/50 split lives; the methodology page
   imports it so prose cannot drift from code.
+- `query.compareLeaderboardRows` is the one leaderboard order: verified first,
+  then score, then lower KL, then lower refusal rate, then the id. The rank
+  column, the family rank, the default sort and the prerendered rows all use
+  it. Two chains of tiebreaks means a leaderboard that reads 17, 19, 18.
 - `query.DEFAULT_QUERY` and `parseQuery` are the only definition of filter
   defaults.
 

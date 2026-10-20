@@ -195,6 +195,29 @@ describe("buildLeaderboardRows", () => {
     expect(byId.get("r3")!.familyRank).toBe(1);
     expect(byId.get("r1")!.familyRank).toBe(1);
   });
+
+  it("gives every row a rank that matches its position in the default sort", () => {
+    // The rank column has to agree with the order the rows are shown in. A
+    // leaderboard that reads 17, 19, 18 looks broken even when every number
+    // in it is right.
+    //
+    // r3 and r5 score the same. "r3" sorts first by id, so a tiebreak on the
+    // id alone would rank r3 above r5, while the table breaks the tie on KL
+    // and shows r5 first.
+    const tied = buildLeaderboardRows({
+      origins: [origin("Qwen/Qwen3-4B")],
+      recipes: [
+        recipe("r3", { kl: 0.1, refusals: 10, score: 92 }),
+        recipe("r5", { kl: 0.05, refusals: 10, score: 92 }),
+      ],
+    });
+    const result = runQuery(tied, q({ sort: "score", dir: "desc" }));
+    expect(result.rows.map((row) => row.recipe.id)).toEqual(["r5", "r3"]);
+    result.rows.forEach((row, index) => {
+      expect(row.rank).toBe(index + 1);
+      expect(row.familyRank).toBe(index + 1);
+    });
+  });
 });
 
 describe("runQuery", () => {

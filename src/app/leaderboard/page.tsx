@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Glossary } from "@/components/Glossary";
 import { LeaderboardExplorer } from "@/components/LeaderboardExplorer";
 import { getLeaderboardRows, getSnapshot } from "@/lib/dataset";
-import { compareForLeaderboard } from "@/lib/scoring";
+import { compareLeaderboardRows } from "@/lib/query";
 
 export const metadata: Metadata = {
   title: "Leaderboard",
@@ -16,7 +16,7 @@ export default function LeaderboardPage() {
   const rows = getLeaderboardRows();
   const ranked = rows
     .filter((row) => row.recipe.score > 0)
-    .sort((a, b) => compareForLeaderboard(a.recipe, b.recipe));
+    .sort((a, b) => compareLeaderboardRows(a, b));
   const initialRows = ranked.slice(0, 50);
   const versions = [...new Set(snapshot.recipes.map((recipe) => recipe.hereticVersion))]
     .filter((version): version is string => Boolean(version))

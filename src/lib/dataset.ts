@@ -8,7 +8,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { buildLeaderboardRows, recipesForOrigin, type LeaderboardRow } from "./query";
-import { compareForLeaderboard } from "./scoring";
 import type { Family, Origin, Recipe, RepoRecord, Snapshot } from "./types";
 
 let cachedSnapshot: Snapshot | null = null;
@@ -121,9 +120,14 @@ export function getFamilyOrigins(slug: string): Origin[] {
     .sort((a, b) => (b.bestScore ?? 0) - (a.bestScore ?? 0) || a.displayName.localeCompare(b.displayName));
 }
 
+/**
+ * The top rows for the home page, in the same order the leaderboard numbers
+ * them. Sorting by the assigned rank rather than by score keeps the `#` column
+ * on the home page in step with the leaderboard it links to.
+ */
 export function getTopRows(limit = 10): LeaderboardRow[] {
   return getLeaderboardRows()
     .filter((row) => row.recipe.score > 0)
-    .sort((a, b) => compareForLeaderboard(a.recipe, b.recipe))
+    .sort((a, b) => (a.rank ?? Number.MAX_SAFE_INTEGER) - (b.rank ?? Number.MAX_SAFE_INTEGER))
     .slice(0, limit);
 }

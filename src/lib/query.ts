@@ -106,6 +106,28 @@ export interface ClientIndex extends LeaderboardSource {
   families: Family[];
 }
 
+/**
+ * The canonical leaderboard order: verified rows first, then score, then the
+ * cheaper ablation, then the id.
+ *
+ * The rank column and the default sort have to agree, so both use this. A
+ * leaderboard whose rows read 17, 19, 18 is right about every number in it
+ * and still looks broken.
+ *
+ * Exported because the prerendered pages order their first rows with it too:
+ * if the server and the browser disagree, the page visibly reorders itself
+ * on load and the first screen can hold different rows from the rest.
+ */
+export function compareLeaderboardRows(a: LeaderboardRow, b: LeaderboardRow): number {
+  return (
+    Number(isVerified(b.recipe)) - Number(isVerified(a.recipe)) ||
+    b.recipe.score - a.recipe.score ||
+    a.recipe.kl - b.recipe.kl ||
+    a.recipe.refusalRate - b.recipe.refusalRate ||
+    a.recipe.id.localeCompare(b.recipe.id)
+  );
+}
+
 export function buildLeaderboardRows(snapshot: LeaderboardSource): LeaderboardRow[] {
   const originById = new Map(snapshot.origins.map((origin) => [origin.id, origin]));
   const rows: LeaderboardRow[] = [];
@@ -116,25 +138,14 @@ export function buildLeaderboardRows(snapshot: LeaderboardSource): LeaderboardRo
     rows.push({ recipe, origin, rank: null, familyRank: null });
   }
 
-  const ranked = rows
-    .filter((row) => row.recipe.score > 0)
-    .sort(
-      (a, b) =>
-        Number(isVerified(b.recipe)) - Number(isVerified(a.recipe)) ||
-        b.recipe.score - a.recipe.score ||
-        a.recipe.id.localeCompare(b.recipe.id),
-    );
+  const ranked = rows.filter((row) => row.recipe.score > 0).sort(compareLeaderboardRows);
   ranked.forEach((row, index) => {
     row.rank = index + 1;
   });
 
   const familyCounts = new Map<string, number>();
   const familySorted = [...ranked].sort(
-    (a, b) =>
-      a.origin.familySlug.localeCompare(b.origin.familySlug) ||
-      Number(isVerified(b.recipe)) - Number(isVerified(a.recipe)) ||
-      b.recipe.score - a.recipe.score ||
-      a.recipe.id.localeCompare(b.recipe.id),
+    (a, b) => a.origin.familySlug.localeCompare(b.origin.familySlug) || compareLeaderboardRows(a, b),
   );
   for (const row of familySorted) {
     const next = (familyCounts.get(row.origin.familySlug) ?? 0) + 1;
