@@ -26,6 +26,10 @@ Pure domain logic and the build-time dataset loader.
   collection with an explicit tie-breaker.
 - Scores are 0–100 with two decimals; null/absent metrics are never coerced to 0
   for ranking purposes.
+- `isRankable` and `scoreOf` must agree: a rankable input always has a score,
+  and an unrankable one never does. A physically impossible value (negative
+  refusals, refusals above their own denominator, negative KL) is unrankable,
+  not a zero. A row that scored zero could otherwise take a best pick.
 - `Recipe.verification` (`verified | unverified | publisher`) is the only signal
   that may put a row above a higher-scoring one. `publisher` is reserved and
   never assigned yet: there is no verification token in the crawl. Do not add a

@@ -61,8 +61,13 @@ export function isRankable(input: ScoreInput): boolean {
   return (
     RANKABLE.has(input.confidence) &&
     input.kl !== null &&
+    Number.isFinite(input.kl) &&
+    input.kl >= 0 &&
     input.refusals !== null &&
-    input.refusalTotal !== null
+    input.refusals >= 0 &&
+    input.refusalTotal !== null &&
+    input.refusalTotal > 0 &&
+    input.refusals <= input.refusalTotal
   );
 }
 

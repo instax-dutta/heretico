@@ -175,6 +175,24 @@ describe("classifyRepos", () => {
     expect(result.get("b/Two-heretic")!.verified).toBe(false);
   });
 
+  it("does not drop a repo that merely descends from a cycle", () => {
+    // a and b declare each other, so neither can be trusted. c only *points*
+    // at a, so c is not part of the cycle and must stay in the index.
+    const result = classifyRepos([
+      input("c/Child-GGUF", {
+        repo: { declaredBaseModels: ["a/One-heretic"], files: ["m.gguf"], tags: ["gguf"] },
+        card: card(),
+      }),
+      input("a/One-heretic", { repo: { declaredBaseModels: ["b/Two-heretic"] }, card: card() }),
+      input("b/Two-heretic", { repo: { declaredBaseModels: ["a/One-heretic"] }, card: card() }),
+    ]);
+    expect(result.get("a/One-heretic")!.verified).toBe(false);
+    expect(result.get("b/Two-heretic")!.verified).toBe(false);
+    // The bystander keeps its classification instead of being dropped silently.
+    expect(result.get("c/Child-GGUF")!.kind).not.toBe("unknown");
+    expect(result.get("c/Child-GGUF")!.verified).toBe(true);
+  });
+
   it("folds case-variant origin spellings onto the indexed one", () => {
     const result = classifyRepos([
       input("google/gemma-4-12b-it", { repo: { declaredBaseModels: [] }, card: card() }),

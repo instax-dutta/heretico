@@ -16,6 +16,9 @@ which ablation attempt its numbers belong to.
   indexed but never ranked.
 - Origin resolution follows the first declared parent recursively; a repo whose
   parent is not indexed stops at that parent. Cycles mark every member unverified.
+  Only the repos *on* the cycle are marked: a repo that merely points into a
+  cycle is not part of it, and marking the whole resolution stack silently
+  dropped that repo's whole subtree from the index.
 - Parent lookup is case-insensitive and every origin id is folded onto one
   spelling (preferring the indexed one) before anything groups by it. Without
   this, `gemma-4-12B-it` and `gemma-4-12b-it` become two origin pages and split

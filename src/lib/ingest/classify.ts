@@ -80,9 +80,12 @@ export function classifyRepos(inputs: RepoInput[]): Map<string, Classification> 
     }
 
     if (resolving.has(id)) {
-      // Every repo on the current stack is part of the cycle; none of them can
-      // claim a trustworthy origin.
-      for (const pending of resolving) cyclic.add(pending);
+      // Only the repos actually *on* the cycle are untrustworthy. `resolving` is
+      // the whole chain currently being walked, and a repo that merely points
+      // into a cycle is not part of it: marking the entire stack silently
+      // dropped that repo's whole subtree from the index.
+      const chain = [...resolving];
+      for (const pending of chain.slice(chain.indexOf(id))) cyclic.add(pending);
       const cycle: Classification = {
         kind: "unknown",
         parents: [],

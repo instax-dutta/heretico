@@ -57,6 +57,23 @@ describe("scoreOf", () => {
     expect(scoreOf(point({ refusalTotal: null }))).toBeNull();
   });
 
+  it("refuses to score physically impossible evidence", () => {
+    // A negative count or a count above its own denominator is a misread card,
+    // not a measurement. Ranking it would let a broken row hold a best pick.
+    expect(isRankable(point({ refusals: -1 }))).toBe(false);
+    expect(scoreOf(point({ refusals: -1 }))).toBeNull();
+    expect(isRankable(point({ kl: -0.1 }))).toBe(false);
+    expect(scoreOf(point({ kl: -0.1 }))).toBeNull();
+    expect(isRankable(point({ refusals: 120, refusalTotal: 100 }))).toBe(false);
+    expect(scoreOf(point({ refusals: 120, refusalTotal: 100 }))).toBeNull();
+  });
+
+  it("agrees with isRankable: a rankable input always has a score", () => {
+    for (const input of [point(), point({ refusals: -1 }), point({ kl: -1 }), point({ confidence: "none" })]) {
+      expect(scoreOf(input) !== null).toBe(isRankable(input));
+    }
+  });
+
   it("accepts inherited evidence from a parent conversion", () => {
     expect(scoreOf(point({ confidence: "inherited" }))).not.toBeNull();
   });
