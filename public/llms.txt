@@ -3,8 +3,8 @@
 An index of Heretic (abliterated) models published on Hugging Face, ranked by
 how little the weights drifted (KL divergence) and how few refusals remain.
 
-Snapshot of 2026-10-21: 1,056 base models, 1,012 measured ablations
-(888 verified, 124 unverified) from 6,269 repositories.
+Snapshot of 2026-10-22: 1,059 base models, 1,013 measured ablations
+(889 verified, 124 unverified) from 6,289 repositories.
 
 ## What this is
 
@@ -41,7 +41,7 @@ and refresh dates.
 Every metric is **self-reported by the publisher**. This site never re-runs an
 evaluation. Three things follow:
 
-- **verified** (888 rows) — the repository ships real model weights and
+- **verified** (889 rows) — the repository ships real model weights and
   reports a KL an abliteration can physically produce.
 - **unverified** (124 rows) — no corroboration beyond the card itself.
   These still rank but never take rank 1, because a fabricated card claiming zero
@@ -58,7 +58,7 @@ differences matter, 0.01 does not.
 ## Machine-readable
 
 - `/data/index.json` — every recipe, origin and family
-- `/sitemap.xml` — all canonical URLs (5,228 URLs)
+- `/sitemap.xml` — all canonical URLs (5,235 URLs)
 - Model pages carry JSON-LD `Dataset` records
 
 Data refreshes daily from the public Hub. The index is independent and not
