@@ -14,7 +14,7 @@ Ships as a static export for Netlify (free tier); `NEXT_PUBLIC_SITE_URL`
 defaults to `https://hdir.sdad.pro`.
 
 <!-- counts:begin -->
-At the time of the committed snapshot: **8,518 repositories indexed, 6,410 verified, 1,079 canonical upstream models, 1,025 measured ablation recipes (901 verified, 124 unverified), 1,288 direct Heretic conversions**, across 68.5M downloads. 639 of the 1,079 base models have no verified conversion and therefore show no best version.
+At the time of the committed snapshot: **8,553 repositories indexed, 6,433 verified, 1,085 canonical upstream models, 1,027 measured ablation recipes (903 verified, 124 unverified), 1,293 direct Heretic conversions**, across 69.2M downloads. 644 of the 1,085 base models have no verified conversion and therefore show no best version.
 <!-- counts:end -->
 
 The index refreshes itself daily; see [Freshness](#freshness).
