@@ -1,5 +1,5 @@
 import { createServer } from "node:http";
-import { existsSync } from "node:fs";
+import { existsSync, readdirSync, statSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { assert, readJson, run } from "./util.mjs";
@@ -99,6 +99,44 @@ try {
 
   const missing = await get("/models/does/not/exist/");
   assert(missing.status === 404, "unknown model route must 404");
+
+  // GitHub Pages refuses to publish a site larger than 1 GB. The export grows
+  // with the index (roughly 1 MB a day), so hitting the wall should be a warning
+  // with time to act, not a deploy that fails with no explanation.
+  function walk(dir) {
+    let bytes = 0;
+    let files = 0;
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        const nested = walk(full);
+        bytes += nested.bytes;
+        files += nested.files;
+      } else if (entry.isFile()) {
+        bytes += statSync(full).size;
+        files += 1;
+      }
+    }
+    return { bytes, files };
+  }
+  const { bytes, files } = walk(OUT);
+  const sizeMb = bytes / (1024 * 1024);
+  console.log(
+    `Export is ${sizeMb.toFixed(0)} MB across ${files} files (GitHub Pages caps a site at 1024 MB).`,
+  );
+  if (sizeMb > 900) {
+    assert(
+      false,
+      `The export is ${sizeMb.toFixed(0)} MB, inside 124 MB of the GitHub Pages cap. ` +
+        `Drop the /repo/ pages for inherited-metric artifacts or move to a host without the limit.`,
+    );
+  }
+  if (sizeMb > 700) {
+    console.log(
+      `::warning::Export is ${sizeMb.toFixed(0)} MB of the 1024 MB GitHub Pages cap. ` +
+        `At the current growth that is a few months of headroom.`,
+    );
+  }
 
   console.log(`App smoke checked ${checks.length + 5} routes against ${snapshot.totals.origins} origins.`);
   console.log("APP SMOKE PASSED");

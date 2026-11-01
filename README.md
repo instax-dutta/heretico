@@ -300,7 +300,40 @@ What Pages does not offer, and what that costs: no custom response headers, so
 the previous per-path `Cache-Control` rules are gone (`/data/*` is no longer
 pinned to five minutes) and Pages applies its own caching. It also has no
 redirect rules, so the old `heretico.sdad.pro` → `hdir.sdad.pro` redirect could
-not be carried over.
+not be carried over. What it does give for free is `Access-Control-Allow-Origin:
+*` on every asset, so `/data/index.json` is readable from any browser without
+extra configuration.
+
+### Hosting limits
+
+Two quotas are worth knowing because they are the only things that can take the
+site down:
+
+- **1 GB published site.** The export is `412 MB`, and it grows with the index at
+  roughly `1 MB/day`, so there is about a year and a half of headroom.
+  `verify/app-smoke.mjs` prints the size on every run, warns past 700 MB and
+  fails past 900 MB, so the wall arrives as a warning rather than a deploy that
+  stops working. The cheapest way to buy a lot of runway is to stop generating a
+  `/repo/` page for artifacts whose numbers are `inherited` — those pages repeat
+  a source page's figures, and dropping them removes about 160 MB and 10,000
+  files.
+- **100 GB/month bandwidth** (soft). That is roughly 200 full passes over every
+  URL, and the site publishes an `llms.txt` and a 5,366-URL sitemap that invite
+  crawlers. `robots.ts` is therefore a deliberate policy rather than `Allow: /`:
+  search engines and the AI crawlers that read `llms.txt` are welcome, SEO and
+  backlink scrapers are not, and everything else is asked for a five-second
+  crawl delay. GitHub emails before it throttles; it does not bill.
+
+### Why the export is heavy, and what it would take to fix
+
+Of the 412 MB, the actual page content is small: on a `/repo/` page the real
+markup is about 9 KB, while 65% of the HTML is Next.js's inline hydration
+payload, and every route also emits four `.txt` RSC payloads — two of which are
+byte-identical. Dropping those payloads leaves 223 MB and about 5,400 files
+instead of 26,874, but the client router fetches them on navigation, so it is
+only safe alongside replacing `next/link` with plain anchors. That is the
+change to make if the size or file count ever becomes the binding constraint;
+today it is not.
 
 Set `NEXT_PUBLIC_SITE_URL` only if the site is served from a domain other than
 the default; it drives the canonical tags, sitemap, robots.txt and the social
