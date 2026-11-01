@@ -110,6 +110,11 @@ ablation recipes, and ranks them by KL divergence and refusal rate.
   bumps of any size auto-merge once CI is green — sound only because
   `ci.yml`'s `pages-dry-run` job actually runs the pages actions. That job must
   not be removed; `security.mjs` fails if it is.
+- `GITHUB_TOKEN` cannot merge a pull request that edits `.github/workflows/`;
+  the `workflows` scope is not grantable through `permissions:`. Action bumps
+  therefore merge only when the optional `AUTOMERGE_TOKEN` secret (fine-grained
+  PAT: contents, pull-requests, workflows = write) is present. Without it the
+  job logs why and leaves the PR for one click, rather than failing.
 - No workflow triggers on `pull_request_target` except
   `dependabot-auto-merge.yml`, which needs a writable token that Dependabot's
   forced read-only `pull_request` runs cannot give. That file must never

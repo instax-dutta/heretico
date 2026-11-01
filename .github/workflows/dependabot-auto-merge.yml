@@ -69,7 +69,13 @@ jobs:
       - name: Wait for CI, then merge only if it passed
         if: steps.decide.outputs.allowed == 'yes'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # A pull request that edits .github/workflows/ can only be merged by a
+          # token holding the `workflows` scope. GITHUB_TOKEN never has it and
+          # the scope cannot be granted through the `permissions:` key, so an
+          # optional PAT (contents, pull-requests, workflows: write) fills in.
+          # Dependency bumps to package.json do not need it.
+          PAT: ${{ secrets.AUTOMERGE_TOKEN }}
+          GH_TOKEN: ${{ secrets.AUTOMERGE_TOKEN || secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
           PR: ${{ github.event.pull_request.number }}
         run: |
@@ -99,4 +105,18 @@ jobs:
             echo "Timed out waiting for checks; leaving this pull request open."
             exit 1
           fi
+
+          if [ -z "$PAT" ]; then
+            touches=$(gh pr view "$PR" --repo "$REPO" --json files \
+              --jq '[.files[].path | select(startswith(".github/workflows/"))] | length')
+            if [ "$touches" != "0" ]; then
+              echo "This pull request edits .github/workflows/, and GITHUB_TOKEN"
+              echo "cannot merge those. Add a fine-grained PAT with contents,"
+              echo "pull-requests and workflows write as AUTOMERGE_TOKEN to make"
+              echo "action bumps merge themselves. Checks passed; only the merge"
+              echo "step is withheld."
+              exit 0
+            fi
+          fi
+
           gh pr merge "$PR" --repo "$REPO" --squash --delete-branch

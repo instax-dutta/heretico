@@ -47,10 +47,13 @@ Offline data pipeline and the runnable oracles behind `GATES.md`.
   `configure-pages` / `upload-pages-artifact` without deploying. That job is
   what makes an action bump provable before it merges.
 - `../.github/workflows/dependabot-auto-merge.yml` — merges npm patch, dev
-  minor, and **any** `github_actions` bump once CI passes; npm minor on a
+  minor, and any `github_actions` bump once CI passes; npm minor on a
   production dependency and every npm major stay for a human. Uses
   `pull_request_target`, because Dependabot's `pull_request` runs get a
   read-only token whatever `permissions:` declares. Never add a checkout here.
+  Merging a PR that edits `.github/workflows/` needs the `workflows` scope,
+  which `GITHUB_TOKEN` cannot hold, so it uses the optional `AUTOMERGE_TOKEN`
+  PAT when present and otherwise skips with an explanation.
 - `verify/seo.mjs` also asserts the social card and icons resolve to real files
   with no query string, and that no Next.js template asset is still shipping. A
   broken `og:image` 404s only in someone else's preview, so nothing else catches it.
