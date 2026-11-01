@@ -106,7 +106,10 @@ ablation recipes, and ranks them by KL divergence and refusal rate.
   Pages, and a `<Link>` would fetch files that are no longer published.
 - Actions are pinned to 40-character commit SHAs, never tags: the workflow
   holds `contents: write` and `pages: write`, so a moved tag would run
-  attacker code with push rights. Dependabot moves the pins weekly.
+  attacker code with push rights. Dependabot moves the pins weekly, and action
+  bumps of any size auto-merge once CI is green — sound only because
+  `ci.yml`'s `pages-dry-run` job actually runs the pages actions. That job must
+  not be removed; `security.mjs` fails if it is.
 - No workflow triggers on `pull_request_target` except
   `dependabot-auto-merge.yml`, which needs a writable token that Dependabot's
   forced read-only `pull_request` runs cannot give. That file must never

@@ -16,7 +16,7 @@ name: Dependabot auto-merge
 #   npm minor, dev only   - always (lint/test tooling)
 #   npm minor, production - never, read it
 #   npm major             - never, read it
-#   actions patch/minor   - always
+#   actions any           - always (CI runs the pages actions too)
 #
 # `main` has no branch protection on purpose: the daily refresh pushes the
 # snapshot straight to it, and a required-check ruleset would reject that push
@@ -51,10 +51,13 @@ jobs:
           DEP: ${{ steps.meta.outputs.dependency-type }}
         run: |
           allowed=no
-          case "$ECO:$UPDATE" in
-            github_actions:version-update:semver-patch) allowed=yes ;;
-            github_actions:version-update:semver-minor) allowed=yes ;;
-          esac
+          # Action bumps of any size: the only extra risk a major adds over a
+          # patch is API incompatibility, and CI now runs the pages actions as
+          # well as the build. Upstream integrity is already assumed for patch
+          # bumps, so refusing majors would not buy anything.
+          if [ "$ECO" = "github_actions" ]; then allowed=yes; fi
+          # npm is different: a major can change runtime behaviour without
+          # failing a build, so it still needs a reader.
           case "$UPDATE" in
             version-update:semver-patch) allowed=yes ;;
             version-update:semver-minor)

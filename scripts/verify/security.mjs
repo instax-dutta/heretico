@@ -54,6 +54,18 @@ for (const file of workflows) {
 }
 assert(pinned > 0, "no action references found; the scan is looking in the wrong place");
 
+// 1b. The auto-merge policy lets action bumps of any size merge unattended.
+//     That is only sound while CI exercises the deploy actions themselves. If
+//     the dry-run job is dropped, a major would merge on checks that never ran
+//     it - the exact case the policy was written to make safe.
+const ci = readFileSync(".github/workflows/ci.yml", "utf8");
+for (const action of ["configure-pages", "upload-pages-artifact"]) {
+  assert(
+    new RegExp(`actions/${action}@`).test(ci),
+    `ci.yml no longer runs actions/${action}; action bumps would merge unproven`,
+  );
+}
+
 // 2. Something has to move those pins, or they rot.
 assert(existsSync(".github/dependabot.yml"), "missing .github/dependabot.yml");
 const dependabot = readFileSync(".github/dependabot.yml", "utf8");

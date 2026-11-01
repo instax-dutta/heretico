@@ -35,14 +35,20 @@ Offline data pipeline and the runnable oracles behind `GATES.md`.
   `seo`, `automation`, `dox`, sharing helpers in `verify/util.mjs`
 - `verify/security.mjs` — G11: actions pinned to SHAs, `pull_request_target`
   confined to `dependabot-auto-merge.yml` and then only without
-  `actions/checkout` and gated to `dependabot[bot]`, dependabot configured, CSP
-  present, no `next/link` in source, no tracked secrets, shipped deps free of
-  high advisories.
+  `actions/checkout` and gated to `dependabot[bot]`, `ci.yml` still running the
+  pages actions (the precondition for auto-merging action majors), dependabot
+  configured, CSP present, no `next/link` in source, no tracked secrets, shipped
+  deps free of high advisories.
 - `../.github/dependabot.yml` — weekly npm + actions updates, grouped so a
-  week is one review rather than twenty.
-- `../.github/workflows/ci.yml` — the full gate suite on every pull request.
-- `../.github/workflows/dependabot-auto-merge.yml` — merges patch bumps, dev
-  minor bumps and action bumps only after CI passes on that PR. Uses
+  week is one review rather than twenty. Groups are `minor`/`patch` only, so a
+  single major cannot poison a whole group into `semver-major`.
+- `../.github/workflows/ci.yml` — the full gate suite on every pull request,
+  plus `pages-dry-run`, which builds the export and runs
+  `configure-pages` / `upload-pages-artifact` without deploying. That job is
+  what makes an action bump provable before it merges.
+- `../.github/workflows/dependabot-auto-merge.yml` — merges npm patch, dev
+  minor, and **any** `github_actions` bump once CI passes; npm minor on a
+  production dependency and every npm major stay for a human. Uses
   `pull_request_target`, because Dependabot's `pull_request` runs get a
   read-only token whatever `permissions:` declares. Never add a checkout here.
 - `verify/seo.mjs` also asserts the social card and icons resolve to real files

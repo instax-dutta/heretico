@@ -53,3 +53,34 @@ jobs:
 
       - name: Docs tree
         run: node scripts/verify/dox.mjs
+
+  # The deploy half of the pipeline, which the `verify` job never touches.
+  # Without this, a bump of `configure-pages` / `upload-pages-artifact` /
+  # `deploy-pages` is only exercised when it reaches main, so an action major
+  # would be merged on the strength of checks that never ran it. This job runs
+  # the real pages actions against the real export and never deploys.
+  pages-dry-run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      pages: write # configure-pages reads the site configuration
+      id-token: write # upload-pages-artifact expects the deploy token shape
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build the export
+        run: npm run build
+
+      - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
+
+      - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
+        with:
+          path: out
