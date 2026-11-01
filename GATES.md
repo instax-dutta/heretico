@@ -37,6 +37,7 @@ Scope: A working, tested static directory of Heretic models — crawl → parse 
 - [x] G7: A production static export serves every functional route with real snapshot content
   CHECK: node scripts/verify/app-smoke.mjs
   EXPECT: APP SMOKE PASSED
+  EVIDENCE: `APP SMOKE PASSED` — also asserts the export is 156 MB across 5,404 files (GitHub Pages caps a site at 1024 MB), that zero RSC payload files remain after `scripts/prune-rsc-payloads.ts`, and that `llms.txt` and `robots.txt` survive the prune
   EVIDENCE: `APP SMOKE PASSED` — 10 routes checked against the export, 1046 model pages + 3869 repo pages prerendered; the model index renders 50 rows per page and each model artifact table caps at 50 rows. Export is 466 MB / 26,002 files, down from 637 MB / 37,582
 
 - [x] G8: SEO surfaces (metadata, sitemap, robots) are generated from the snapshot and every sitemap URL resolves

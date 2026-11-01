@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { getSnapshot } from "@/lib/dataset";
 import { formatCompact, formatDate } from "@/lib/format";
 import { WEIGHTS } from "@/lib/scoring";
@@ -39,7 +38,7 @@ export default function MethodologyPage() {
         <p className="text-zinc-400">
           The rest of this page is the exact version: the formula, the tie-breaks, and the
           limits of what the data can say. A plain-language glossary of every term the tables
-          use is on the <Link className="underline" href="/">home page</Link>.
+          use is on the <a className="underline" href="/">home page</a>.
         </p>
       </section>
 

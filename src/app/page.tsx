@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Glossary } from "@/components/Glossary";
 import { RecipeTable } from "@/components/RecipeTable";
 import { Card, MetricLegend, Stat } from "@/components/ui";
@@ -80,9 +79,9 @@ export default function HomePage() {
               Highest score across all families. Filter by size and family on the leaderboard.
             </p>
           </div>
-          <Link className="text-sm underline" href="/leaderboard/">
+          <a className="text-sm underline" href="/leaderboard/">
             Full leaderboard
-          </Link>
+          </a>
         </div>
         <Card className="p-0">
           <div className="px-4 py-2">
@@ -95,13 +94,13 @@ export default function HomePage() {
       <section>
         <div className="mb-3 flex items-end justify-between">
           <h2 className="text-xl font-semibold tracking-tight">Browse by family</h2>
-          <Link className="text-sm underline" href="/families/">
+          <a className="text-sm underline" href="/families/">
             All families
-          </Link>
+          </a>
         </div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {families.map((family) => (
-            <Link
+            <a
               key={family.slug}
               href={familyHref(family.slug)}
               className="rounded-lg border p-4 border-zinc-800 bg-zinc-950 hover:border-zinc-600"
@@ -110,15 +109,15 @@ export default function HomePage() {
               <div className="text-xs text-zinc-500">
                 {family.originCount} models · {family.rankedRecipeCount} ranked
               </div>
-            </Link>
+            </a>
           ))}
         </div>
         {smallFamilies > 0 ? (
           <p className="mt-3 text-xs text-zinc-500">
             {smallFamilies} more groups hold a single model each. They are on the{" "}
-            <Link className="underline" href="/families/">
+            <a className="underline" href="/families/">
               families page
-            </Link>
+            </a>
             .
           </p>
         ) : null}
@@ -136,9 +135,9 @@ export default function HomePage() {
         <Glossary />
         <p className="text-sm text-zinc-500">
           The{" "}
-          <Link className="underline" href="/methodology/">
+          <a className="underline" href="/methodology/">
             methodology page
-          </Link>{" "}
+          </a>{" "}
           has the exact scoring formula and the full list of caveats.
         </p>
       </section>

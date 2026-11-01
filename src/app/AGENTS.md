@@ -52,6 +52,11 @@ plus one JSON index for browser-side filtering.
   `lib/dataset.ts` must fold case to match, for `getOrigin`, `getRepo` and both
   `*ForOrigin` filters.
 - Server pages must not read `searchParams`; filtering is a client concern.
+- **Internal links are plain `<a>` anchors, never `next/link`.** Soft
+  navigation is what makes the App Router emit four RSC payload files per
+  route (21,468 files, 254 MB). `scripts/prune-rsc-payloads.ts` deletes them
+  so the export fits GitHub Pages, and a `<Link>` would fetch files that are
+  no longer published. `verify/app-smoke.mjs` fails if any payload survives.
 - Route params are promises in this Next version: `const { id } = await params`.
 - Metadata comes from `generateMetadata`/`metadata`, with a canonical path.
 - Page copy must not claim what the data cannot support (see methodology).

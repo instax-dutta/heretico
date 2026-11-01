@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { getSnapshot } from "@/lib/dataset";
 import { familyHref, formatCompact } from "@/lib/format";
 
@@ -36,7 +35,7 @@ export default function FamiliesPage() {
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {families.map((family) => (
-          <Link
+          <a
             key={family.slug}
             href={familyHref(family.slug)}
             className="rounded-lg border p-4 border-zinc-800 bg-zinc-950 hover:border-zinc-600"
@@ -49,7 +48,7 @@ export default function FamiliesPage() {
               {family.rankedRecipeCount} ranked conversions ·{" "}
               {formatCompact(family.downloadsAllTime)} downloads
             </div>
-          </Link>
+          </a>
         ))}
       </div>
     </div>

@@ -106,24 +106,43 @@ try {
   function walk(dir) {
     let bytes = 0;
     let files = 0;
+    let payloads = 0;
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
       const full = path.join(dir, entry.name);
       if (entry.isDirectory()) {
         const nested = walk(full);
         bytes += nested.bytes;
         files += nested.files;
+        payloads += nested.payloads;
       } else if (entry.isFile()) {
         bytes += statSync(full).size;
         files += 1;
+        if (entry.name === "index.txt" || (entry.name.startsWith("__next.") && entry.name.endsWith(".txt"))) {
+          payloads += 1;
+        }
       }
     }
-    return { bytes, files };
+    return { bytes, files, payloads };
   }
-  const { bytes, files } = walk(OUT);
+  const { bytes, files, payloads } = walk(OUT);
   const sizeMb = bytes / (1024 * 1024);
   console.log(
     `Export is ${sizeMb.toFixed(0)} MB across ${files} files (GitHub Pages caps a site at 1024 MB).`,
   );
+
+  // `scripts/prune-rsc-payloads.ts` deletes these so the export fits the host.
+  // They come back if the prune stops running, or if a `<Link>` is reintroduced
+  // and quietly depends on files that no longer exist.
+  if (payloads > 0) {
+    assert(
+      false,
+      `${payloads} RSC payload files are still in the export. ` +
+        `The prune did not run, or next/link came back: internal navigation must use plain anchors.`,
+    );
+  }
+  for (const required of ["llms.txt", "robots.txt"]) {
+    assert(existsSync(path.join(OUT, required)), `out/${required} was pruned but must be published`);
+  }
   if (sizeMb > 900) {
     assert(
       false,

@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import Link from "next/link";
 import { SITE_URL } from "@/lib/site";
 import "./globals.css";
 
@@ -67,21 +66,21 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="flex min-h-full flex-col bg-zinc-950 text-zinc-100">
         <header className="sticky top-0 z-20 border-b border-zinc-800 bg-zinc-950/80 backdrop-blur-md">
           <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-3 px-4 py-3">
-            <Link
+            <a
               href="/"
               className="text-sm font-semibold tracking-tight text-zinc-100 transition-colors hover:text-white"
             >
               Heretic<span className="text-zinc-500"> Directory</span>
-            </Link>
+            </a>
             <nav className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm">
               {NAV.map((item) => (
-                <Link
+                <a
                   key={item.href}
                   href={item.href}
                   className="rounded text-zinc-400 underline-offset-4 transition-colors hover:text-zinc-100 hover:underline"
                 >
                   {item.label}
-                </Link>
+                </a>
               ))}
             </nav>
           </div>
@@ -104,9 +103,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               . Metrics are taken from the publishers&apos; own model cards and are never invented.
             </p>
             <p>
-              <Link className="underline" href="/methodology/">
+              <a className="underline" href="/methodology/">
                 How the ranking works
-              </Link>{" "}
+              </a>{" "}
               · data from the public Hugging Face Hub.
             </p>
           </div>

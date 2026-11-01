@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { RecipeTable } from "@/components/RecipeTable";
 import { Badge, Breadcrumbs, Card, MetricLegend, ScorePill, VerificationBadge } from "@/components/ui";
@@ -233,9 +232,9 @@ export default async function ModelPage({ params }: PageProps<"/models/[...id]">
           ) : null}
           <p className="mt-3 text-xs text-zinc-500">
             Metrics published by the author.{" "}
-            <Link className="underline" href="/methodology/">
+            <a className="underline" href="/methodology/">
               Why this ranks first
-            </Link>
+            </a>
             .
           </p>
         </Card>
@@ -307,9 +306,9 @@ export default async function ModelPage({ params }: PageProps<"/models/[...id]">
                       {repo.id.split("/").pop()}
                     </a>
                   ) : (
-                    <Link href={repoHref(repo.id)} className="hover:underline">
+                    <a href={repoHref(repo.id)} className="hover:underline">
                       {repo.id.split("/").pop()}
-                    </Link>
+                    </a>
                   )}
                   <div className="text-xs text-zinc-500">{repo.author}</div>
                 </td>

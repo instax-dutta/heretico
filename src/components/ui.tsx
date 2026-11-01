@@ -1,4 +1,3 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
 import { formatScore } from "@/lib/format";
 import type { Verification } from "@/lib/types";
@@ -103,9 +102,9 @@ export function Breadcrumbs({ items }: { items: { label: string; href?: string }
         <span key={`${item.label}-${index}`} className="flex items-center gap-1">
           {index > 0 ? <span aria-hidden>›</span> : null}
           {item.href ? (
-            <Link className="hover:underline" href={item.href}>
+            <a className="hover:underline" href={item.href}>
               {item.label}
-            </Link>
+            </a>
           ) : (
             <span className="text-zinc-300">{item.label}</span>
           )}

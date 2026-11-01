@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { RecipeTable } from "@/components/RecipeTable";
 import { Badge, Breadcrumbs, Card } from "@/components/ui";
@@ -63,7 +62,7 @@ export default async function FamilyPage({ params }: PageProps<"/families/[slug]
         <h2 className="mb-2 text-lg font-semibold tracking-tight">All models</h2>
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {origins.map((origin) => (
-            <Link
+            <a
               key={origin.id}
               href={`/models/${origin.id}/`}
               className="flex items-baseline justify-between gap-2 rounded border px-3 py-2 text-sm border-zinc-800 bg-zinc-950 hover:border-zinc-600"
@@ -72,7 +71,7 @@ export default async function FamilyPage({ params }: PageProps<"/families/[slug]
               <span className="shrink-0 text-xs text-zinc-500">
                 {formatParams(origin.paramsB, origin.paramsActiveB, origin.moe)}
               </span>
-            </Link>
+            </a>
           ))}
         </div>
       </section>

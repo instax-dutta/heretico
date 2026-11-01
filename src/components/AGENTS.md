@@ -26,6 +26,9 @@ model directory) that filter the snapshot in the browser.
 - Every full-dataset table is paged. The model index has ~1k origins and a row is
   ~8 elements; rendering them all costs thousands of DOM nodes on a phone.
 - Components never compute scores themselves; use `lib/scoring` and `lib/query`.
+- **Link with `<a href>`, not `next/link`.** The export prunes the App
+  Router's RSC payloads; a `<Link>` would prefetch files that no longer
+  exist and fall back to a full navigation anyway, with a console error.
 - **Jargon is never left undefined.** A term used in a table header, a badge or
   a sentence is defined in `Glossary.tsx` and reachable from the page that uses
   it. `MetricLegend` spells out the numeric columns in one line under the table,

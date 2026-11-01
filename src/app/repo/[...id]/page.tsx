@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Badge, Breadcrumbs, Card } from "@/components/ui";
 import { getMeasuredRepos, getOrigin, getRepo, pathSegments } from "@/lib/dataset";
@@ -46,9 +45,9 @@ function Confidence({ repo }: { repo: RepoRecord }) {
     return (
       <span>
         {label} —{" "}
-        <Link className="underline" href={repoHref(repo.metrics.sourceRepoId)}>
+        <a className="underline" href={repoHref(repo.metrics.sourceRepoId)}>
           source
-        </Link>
+        </a>
       </span>
     );
   }
@@ -150,7 +149,7 @@ export default async function RepoPage({ params }: PageProps<"/repo/[...id]">) {
           <dl className="flex flex-col gap-2 text-sm">
             <div>
               <dt className="text-xs text-zinc-500">Canonical model</dt>
-              <dd>{origin ? <Link className="underline" href={originHref(origin.id)}>{origin.id}</Link> : repo.originId}</dd>
+              <dd>{origin ? <a className="underline" href={originHref(origin.id)}>{origin.id}</a> : repo.originId}</dd>
             </div>
             <div>
               <dt className="text-xs text-zinc-500">Declared parent(s)</dt>

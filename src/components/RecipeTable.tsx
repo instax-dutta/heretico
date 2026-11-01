@@ -1,4 +1,3 @@
-import Link from "next/link";
 import {
   formatCompact,
   formatParams,
@@ -89,13 +88,13 @@ export function RecipeTable({
                 ) : null}
                 {showOrigin ? (
                   <td className="py-2 pr-3">
-                    <Link
+                    <a
                       href={originHref(origin.id)}
                       className="font-medium hover:underline"
                       title={origin.id}
                     >
                       {origin.displayName}
-                    </Link>
+                    </a>
                     <div className="text-xs text-zinc-500">{origin.owner}</div>
                   </td>
                 ) : null}

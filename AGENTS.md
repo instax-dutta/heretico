@@ -100,6 +100,10 @@ ablation recipes, and ranks them by KL divergence and refusal rate.
 - Client components may not import `src/lib/dataset.ts` (build-time fs access).
 - Keep the site static-exportable: no route handlers, no server actions, no
   `searchParams` in server pages.
+- Internal links are plain `<a>` anchors, never `next/link`. The App Router
+  emits four RSC payloads per route (21,468 files, 254 MB);
+  `scripts/prune-rsc-payloads.ts` deletes them so the export fits GitHub
+  Pages, and a `<Link>` would fetch files that are no longer published.
 - `npm test`, `npm run typecheck`, `npm run build` must pass before a commit.
 - Route types are generated into `.next/`, which is gitignored: run
   `next typegen` (or `npm run typecheck`) before expecting tsc to see

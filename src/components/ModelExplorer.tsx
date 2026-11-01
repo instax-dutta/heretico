@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { SIZE_CLASSES } from "@/lib/naming";
 import {
@@ -192,15 +191,15 @@ export function ModelExplorer({
                 className="border-b last:border-0 border-zinc-900"
               >
                 <td className="max-w-[280px] px-4 py-2">
-                  <Link href={originHref(origin.id)} className="font-medium hover:underline">
+                  <a href={originHref(origin.id)} className="font-medium hover:underline">
                     {origin.displayName}
-                  </Link>
+                  </a>
                   <div className="text-xs text-zinc-500">{origin.owner}</div>
                 </td>
                 <td className="py-2 pr-3">
-                  <Link className="hover:underline" href={familyHref(origin.familySlug)}>
+                  <a className="hover:underline" href={familyHref(origin.familySlug)}>
                     {origin.family}
-                  </Link>
+                  </a>
                 </td>
                 <td className="py-2 pr-3 text-right tabular-nums">
                   {formatParams(origin.paramsB, origin.paramsActiveB, origin.moe)}

@@ -6,7 +6,7 @@
     "sync": "tsx scripts/sync-public.ts && tsx scripts/build-llms-txt.ts",
     "counts": "tsx scripts/build-readme-counts.ts",
     "dev": "npm run sync && next dev",
-    "build": "npm run sync && next build && npm run og",
+    "build": "npm run sync && next build && tsx scripts/prune-rsc-payloads.ts && npm run og",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",

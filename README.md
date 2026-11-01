@@ -309,14 +309,11 @@ extra configuration.
 Two quotas are worth knowing because they are the only things that can take the
 site down:
 
-- **1 GB published site.** The export is `412 MB`, and it grows with the index at
-  roughly `1 MB/day`, so there is about a year and a half of headroom.
-  `verify/app-smoke.mjs` prints the size on every run, warns past 700 MB and
-  fails past 900 MB, so the wall arrives as a warning rather than a deploy that
-  stops working. The cheapest way to buy a lot of runway is to stop generating a
-  `/repo/` page for artifacts whose numbers are `inherited` — those pages repeat
-  a source page's figures, and dropping them removes about 160 MB and 10,000
-  files.
+- **1 GB published site.** The export is `156 MB` across `5,404` files and
+  grows with the index at roughly `1 MB/day`, so there is over two years of
+  headroom. `verify/app-smoke.mjs` prints the size on every run, warns past
+  700 MB and fails past 900 MB, so the wall arrives as a warning rather than a
+  deploy that stops working.
 - **100 GB/month bandwidth** (soft). That is roughly 200 full passes over every
   URL, and the site publishes an `llms.txt` and a 5,366-URL sitemap that invite
   crawlers. `robots.ts` is therefore a deliberate policy rather than `Allow: /`:
@@ -324,16 +321,30 @@ site down:
   backlink scrapers are not, and everything else is asked for a five-second
   crawl delay. GitHub emails before it throttles; it does not bill.
 
-### Why the export is heavy, and what it would take to fix
+### Why the export is small enough to last
 
-Of the 412 MB, the actual page content is small: on a `/repo/` page the real
-markup is about 9 KB, while 65% of the HTML is Next.js's inline hydration
-payload, and every route also emits four `.txt` RSC payloads — two of which are
-byte-identical. Dropping those payloads leaves 223 MB and about 5,400 files
-instead of 26,874, but the client router fetches them on navigation, so it is
-only safe alongside replacing `next/link` with plain anchors. That is the
-change to make if the size or file count ever becomes the binding constraint;
-today it is not.
+The first export of this site was 412 MB across 26,874 files, and 65% of every
+page was Next.js hydration payload. The App Router writes four `.txt` RSC
+payloads beside each prerendered route — `index.txt`, a byte-identical
+`__next._full.txt`, `__next._tree.txt` and a route-named segment — 21,468 files
+and 254 MB, fetched only by the client router for soft navigation and prefetch.
+
+This site navigates with **plain anchors**, not `next/link`, so nothing asks for
+them. `scripts/prune-rsc-payloads.ts` deletes them after `next build`, taking
+the export to 156 MB and 5,404 files. The rendered pages are byte-identical:
+every route's visible text was diffed against the pre-prune build and matched
+exactly.
+
+Two rules keep it that way, and `verify/app-smoke.mjs` enforces both: the prune
+must leave zero payload files, and `llms.txt` and `robots.txt` — which share the
+extension but are real deliverables — must survive it. Reintroducing `next/link`
+would silently start depending on files that are no longer published, so
+`@next/next/no-html-link-for-pages` is disabled in `eslint.config.mjs` with that
+reason recorded.
+
+The remaining weight is still mostly framework: 65% of each page's HTML is
+inline flight data for hydration. Removing that would mean dropping hydration
+altogether, which the two client-side explorers need, so it is left alone.
 
 Set `NEXT_PUBLIC_SITE_URL` only if the site is served from a domain other than
 the default; it drives the canonical tags, sitemap, robots.txt and the social
