@@ -21,10 +21,50 @@ assert(
 assert(/app-smoke/.test(workflow), "workflow does not serve the export before deploying");
 assert(/::error/.test(workflow), "workflow has no failure reporting");
 
-assert(existsSync("netlify.toml"), "missing netlify.toml");
-const netlify = readFileSync("netlify.toml", "utf8");
-assert(/publish\s*=\s*"out"/.test(netlify), "netlify publish directory is not out/");
-assert(/command\s*=\s*"npm run build"/.test(netlify), "netlify build command is not npm run build");
+// The site is published by GitHub Pages from the artifact this workflow builds.
+// Each half of that is required: configure-pages for the base, the artifact for
+// the content, deploy-pages for the publish. `path: out` is the Next export.
+assert(
+  /actions\/configure-pages@/.test(workflow),
+  "workflow does not configure GitHub Pages",
+);
+assert(
+  /actions\/upload-pages-artifact@/.test(workflow) && /path:\s*out/.test(workflow),
+  "workflow does not upload the export as the Pages artifact",
+);
+assert(/actions\/deploy-pages@/.test(workflow), "workflow does not deploy to GitHub Pages");
+assert(
+  /pages:\s*write/.test(workflow) && /id-token:\s*write/.test(workflow),
+  "workflow lacks the pages/id-token permissions the Pages deploy needs",
+);
+// A green refresh on a frozen site is the failure this check exists for.
+assert(
+  /Is the live site serving the committed snapshot/.test(workflow),
+  "workflow does not check that the live site is fresh, only the committed snapshot",
+);
+assert(!/netlify/i.test(workflow), "workflow still mentions Netlify");
+
+// GitHub Pages runs Jekyll unless told not to, and Jekyll silently drops every
+// directory whose name starts with an underscore. Next emits `_next/`, so a
+// missing .nojekyll serves a blank page with no error anywhere.
+assert(existsSync("public/.nojekyll"), "missing public/.nojekyll: Pages would drop _next/ and serve a blank site");
+
+// The custom domain has to survive each deployment, so it lives in the repo.
+assert(existsSync("public/CNAME"), "missing public/CNAME: the custom domain would reset on every deploy");
+const cname = readFileSync("public/CNAME", "utf8").trim();
+const siteUrl = readFileSync("src/lib/site.ts", "utf8");
+const host = /NEXT_PUBLIC_SITE_URL\s*\?\?\s*"https:\/\/([^"/]+)"/.exec(siteUrl)?.[1];
+assert(Boolean(host), "could not read SITE_URL from src/lib/site.ts");
+assert(cname === host, `public/CNAME is "${cname}" but SITE_URL is "${host}"`);
+
+assert(!existsSync("netlify.toml"), "netlify.toml still present: the deploy has moved to GitHub Pages");
+
+const nextConfig = readFileSync("next.config.ts", "utf8");
+assert(/output:\s*"export"/.test(nextConfig), "next.config.ts is not a static export");
+assert(
+  /trailingSlash:\s*true/.test(nextConfig),
+  "trailingSlash must stay on: Pages serves /x/ as /x/index.html",
+);
 
 const test = runQuiet("npx", ["vitest", "run", "tests/ingest/incremental.test.ts"]);
 process.stdout.write(test.stdout ?? "");

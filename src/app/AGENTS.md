@@ -46,10 +46,11 @@ plus one JSON index for browser-side filtering.
   `<select>` popup. Adding a native control means adding its theming.
 - Regenerate icons and the social card with `npm run og` after editing
   `public/icon.svg`.
-- Every generated path is **lowercase** (`pathSegments`). Netlify lowercases
-  what it serves, so a mixed-case directory is reachable only via a 301 and its
-  canonical points at a redirect. Lookups in `lib/dataset.ts` must fold case to
-  match, for `getOrigin`, `getRepo` and both `*ForOrigin` filters.
+- Every generated path is **lowercase** (`pathSegments`). Every URL this site
+  has published is lowercase and indexed, and GitHub Pages is case-sensitive,
+  so a mixed-case directory would be a duplicate page. Lookups in
+  `lib/dataset.ts` must fold case to match, for `getOrigin`, `getRepo` and both
+  `*ForOrigin` filters.
 - Server pages must not read `searchParams`; filtering is a client concern.
 - Route params are promises in this Next version: `const { id } = await params`.
 - Metadata comes from `generateMetadata`/`metadata`, with a canonical path.

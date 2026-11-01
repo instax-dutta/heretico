@@ -34,10 +34,10 @@ export function getOrigins(): Origin[] {
 }
 
 /**
- * Netlify lowercases every path it serves, so `/models/Qwen/…` 301s to
- * `/models/qwen/…`. Prerendering the lowercase form means the built directory,
- * the sitemap and the canonical tag all match what is served, and the route
- * resolves without a redirect.
+ * Paths have been published lowercase since the first deploy, and GitHub Pages
+ * is case-sensitive, so `/models/Qwen/…` would be a different URL from
+ * `/models/qwen/…`. Prerendering the lowercase form keeps the built directory,
+ * the sitemap, the canonical tag and every already-indexed link on one spelling.
  */
 export function pathSegments(id: string): string[] {
   return id.split("/").map((part) => part.toLowerCase());

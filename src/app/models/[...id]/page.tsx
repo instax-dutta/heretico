@@ -29,8 +29,8 @@ import type { Origin, Recipe, RepoRecord } from "@/lib/types";
 export const dynamicParams = false;
 
 export function generateStaticParams(): { id: string[] }[] {
-  // Lowercase: Netlify serves lowercase paths, so a mixed-case directory would
-  // only ever be reached through a 301.
+  // Lowercase: every published URL is lowercase and indexed, and Pages is
+  // case-sensitive, so a mixed-case directory would be a duplicate page.
   return getSnapshot().origins.map((origin) => ({ id: pathSegments(origin.id) }));
 }
 

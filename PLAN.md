@@ -179,7 +179,7 @@ The app reads the snapshot through `src/lib/dataset.ts` (single loader, typed
 accessors, memoised). No database, no runtime third-party calls: the site is
 reproducible from the committed snapshot and works offline.
 
-Deployment is a static export to Netlify (`out/`). The full snapshot powers
+Deployment is a static export to GitHub Pages (`out/`). The full snapshot powers
 prerendering; a compact `public/data/index.json` (~1–2 MB gzipped) powers
 browser-side filtering. Nothing runs on a server, so there is no free-tier
 function limit to design around.
@@ -189,8 +189,7 @@ function limit to design around.
 ## 7. Routes
 
 Static export (`output: "export"`), no server functions. Filtering and search
-run in the browser over one compact index, so Netlify's free tier only ever
-serves files.
+run in the browser over one compact index, so the host only ever serves files.
 
 | Route | Purpose |
 | :-- | :-- |
@@ -223,7 +222,7 @@ because the browser needs it to filter; it is not documented or linked.
    2.6 recipe grouping + inherited evidence
    2.7 scoring, Pareto, best pick, ranks
    2.8 snapshot build + schema validation + overrides
-3  Serving (static export, Netlify)
+3  Serving (static export, GitHub Pages)
    3.1 dataset loader + query layer (filter/sort/search/paginate)
    3.2 client index build + browser search
    3.3 pages (home, leaderboard, models, model detail, family, repo, methodology)

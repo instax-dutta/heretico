@@ -85,7 +85,7 @@ ablation recipes, and ranks them by KL divergence and refusal rate.
 ### Stack
 
 - Next.js 16 App Router, React 19, TypeScript, Tailwind v4
-- Static export (`output: "export"`) deployed on Netlify; no server runtime, no API
+- Static export (`output: "export"`) deployed on GitHub Pages; no server runtime, no API
 - Data: `data/snapshot.json`, built offline by `scripts/crawl.ts` + `scripts/build-snapshot.ts`
 - Tests: Vitest; gates: `GATES.md` + `scripts/verify/*.mjs`
 
@@ -117,7 +117,10 @@ ablation recipes, and ranks them by KL divergence and refusal rate.
 
 ### User Preferences
 
-- Hosting is Netlify free tier.
+- Hosting is GitHub Pages (free tier, public repository). `public/.nojekyll`
+  and `public/CNAME` must stay committed: without the first, Pages runs Jekyll
+  and silently drops `_next/`, serving a blank site; without the second, the
+  custom domain resets to `*.github.io` on every deploy.
 - Humans only: no public JSON API or agent-facing surface beyond what the
   browser itself needs.
 - Functional completeness comes first; visual design is a later phase.

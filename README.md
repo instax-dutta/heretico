@@ -10,8 +10,8 @@ copies them from the model it descends from, or does not report them at all.
 This site reads those cards, works out what each repository actually *is*,
 groups the artifacts that belong to the same ablation, and ranks the results.
 
-Ships as a static export for Netlify (free tier); `NEXT_PUBLIC_SITE_URL`
-defaults to `https://hdir.sdad.pro`.
+Ships as a static export to GitHub Pages (free tier, public repository);
+`NEXT_PUBLIC_SITE_URL` defaults to `https://hdir.sdad.pro`.
 
 <!-- counts:begin -->
 At the time of the committed snapshot: **8,587 repositories indexed, 6,461 verified, 1,087 canonical upstream models, 1,046 measured ablation recipes (922 verified, 124 unverified), 1,295 direct Heretic conversions**, across 69.6M downloads. 639 of the 1,087 base models have no verified conversion and therefore show no best version.
@@ -133,10 +133,11 @@ All routes are prerendered; `trailingSlash` is on, so every URL ends in `/`.
 | `/llms.txt` | Generated from the snapshot: a plain-text guide for language models |
 | `/og.png`, `/icon.svg` | Social card and mark, also generated; see [Brand](#brand) |
 
-Every path is **lowercase**. Netlify lowercases whatever it serves, so a
-mixed-case directory is only reachable through a 301 and its canonical tag
-points at a redirecting URL. `pathSegments` in `lib/dataset.ts` generates the
-lowercase form and every lookup folds case to match.
+Every path is **lowercase**. That has been the published form since the first
+deploy and every inbound link, canonical tag and sitemap entry uses it, so
+changing the scheme now would cost each crawler a redirect. `pathSegments` in
+`lib/dataset.ts` generates the lowercase form and every lookup folds case to
+match.
 
 Filtering, sorting, search and pagination run client-side against
 `/data/index.json`, with the query reflected in the URL (`?q=`, `?family=`,
@@ -204,7 +205,7 @@ results; the oracles are:
 | G6 | `node scripts/verify/snapshot.mjs` | snapshot schema, invariant and depth checks |
 | G7 | `node scripts/verify/app-smoke.mjs` | builds and serves `out/`, asserts real content on every route |
 | G8 | `node scripts/verify/seo.mjs` | sitemap URLs resolve, titles unique, robots declares the sitemap |
-| G9 | `node scripts/verify/automation.mjs` | incremental cache behaviour, refresh workflow, Netlify config |
+| G9 | `node scripts/verify/automation.mjs` | incremental cache behaviour, refresh workflow, GitHub Pages config |
 | G10 | `node scripts/verify/dox.mjs` | the AGENTS.md documentation tree is complete and consistent |
 
 `scripts/verify/snapshot.mjs` is the strict one: it re-derives scores, refusal
@@ -279,10 +280,31 @@ Three rules keep the pages usable for them:
 
 ## Deploy
 
-`netlify.toml` is complete — build `npm run build`, publish `out/`, Node 22, with
-long-lived cache headers for `/_next/static/*` and an hour for `/data/*`. On
-Netlify, set `NEXT_PUBLIC_SITE_URL` if the site is not served from the default
-domain, then deploy. No functions, no build plugins, no database.
+GitHub Pages, from the artifact the refresh workflow builds. There is no build
+step on the host: `npm run build` writes `out/`, `actions/upload-pages-artifact`
+publishes it, and `actions/deploy-pages` makes it live.
+
+Two files in `public/` are load-bearing and must stay committed:
+
+- **`public/.nojekyll`** — Pages runs Jekyll unless told not to, and Jekyll
+  silently drops every directory starting with `_`. Next emits `_next/`, so
+  without this file the site serves a blank page with no error anywhere. It is
+  the single most common way a Next static export fails on Pages.
+- **`public/CNAME`** — the custom domain. Without it every deployment resets the
+  domain back to `*.github.io`.
+
+`hdir.sdad.pro` is a `CNAME` record pointing at `instax-dutta.github.io`. The
+repository's Pages source is **GitHub Actions**, not a branch.
+
+What Pages does not offer, and what that costs: no custom response headers, so
+the previous per-path `Cache-Control` rules are gone (`/data/*` is no longer
+pinned to five minutes) and Pages applies its own caching. It also has no
+redirect rules, so the old `heretico.sdad.pro` → `hdir.sdad.pro` redirect could
+not be carried over.
+
+Set `NEXT_PUBLIC_SITE_URL` only if the site is served from a domain other than
+the default; it drives the canonical tags, sitemap, robots.txt and the social
+card.
 
 ## Freshness
 
@@ -293,14 +315,21 @@ domain, then deploy. No functions, no build plugins, no database.
 3. crawl with the `HF_TOKEN` secret,
 4. rebuild and validate the snapshot,
 5. build the site, then serve the export and check it,
-6. commit `data/snapshot.json` and `public/llms.txt` if the data changed —
-   Netlify then redeploys.
+6. commit `data/snapshot.json` and `public/llms.txt` if the data changed,
+7. publish `out/` to GitHub Pages.
 
 A push that touches `src/`, `scripts/`, `tests/` or the pipeline runs the same
 gates, so a build that prerenders but does not serve is caught before it reaches
-Netlify. The bot's own commit is also what keeps the schedule alive: GitHub
+Pages. The bot's own commit is also what keeps the schedule alive: GitHub
 disables scheduled workflows in a public repository after 60 days without
 activity.
+
+The pipeline being green says nothing about the deployed site. On 2026-10-20 the
+refresh succeeded every day for twelve days while the live site stayed frozen on
+an older snapshot, and no gate failed, because every gate watched git rather
+than the host. `verify-freshness` now fetches `/data/index.json` from the live
+site and fails when it is more than a day behind the committed snapshot, so a
+deploy that stops reaching the host is loud instead of silent.
 
 Because the cache is keyed by commit sha, a daily run only fetches cards whose
 repository actually changed.

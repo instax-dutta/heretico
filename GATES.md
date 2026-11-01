@@ -2,7 +2,7 @@
 
 OWNS: src/**, scripts/**, tests/**, data/**, public/**, package.json, PLAN.md, README.md, AGENTS.md, GATES.md, next.config.ts, tsconfig.json, vitest.config.ts, eslint.config.mjs, .github/**
 
-Scope: A working, tested static directory of Heretic models — crawl → parse → classify → score → snapshot → prerendered pages with browser-side filtering — verified against real Hugging Face data and deployable to Netlify. Visual design and any API surface are out of scope.
+Scope: A working, tested static directory of Heretic models — crawl → parse → classify → score → snapshot → prerendered pages with browser-side filtering — verified against real Hugging Face data and deployable to GitHub Pages. Visual design and any API surface are out of scope.
 
 - [x] G1: The codebase typechecks and lints without errors
   CHECK: node scripts/verify/static.mjs
@@ -42,12 +42,12 @@ Scope: A working, tested static directory of Heretic models — crawl → parse 
 - [x] G8: SEO surfaces (metadata, sitemap, robots) are generated from the snapshot and every sitemap URL resolves
   CHECK: node scripts/verify/seo.mjs
   EXPECT: SEO SURFACES VERIFIED
-  EVIDENCE: `SEO SURFACES VERIFIED` — 5189 sitemap URLs all resolve, unique titles on sampled pages. `/repo/` is generated only for the 3872 artifacts that published metrics. `og:image` and every icon resolve to a real file with no query string, and no Next.js template asset ships. Every generated path is lowercase because Netlify lowercases what it serves: a mixed-case directory is only reachable through a 301, and the canonical tag pointed at a redirecting URL. Model pages carry JSON-LD `Dataset` records with `dateModified`, and `public/llms.txt` is generated from the snapshot
+  EVIDENCE: `SEO SURFACES VERIFIED` — 5189 sitemap URLs all resolve, unique titles on sampled pages. `/repo/` is generated only for the 3872 artifacts that published metrics. `og:image` and every icon resolve to a real file with no query string, and no Next.js template asset ships. Every generated path is lowercase because that is the form every published URL and canonical already uses, and GitHub Pages is case-sensitive: a mixed-case directory would be a duplicate page. Model pages carry JSON-LD `Dataset` records with `dateModified`, and `public/llms.txt` is generated from the snapshot
 
 - [x] G9: Freshness automation is wired: incremental crawl skips unchanged repos and the scheduled workflow rebuilds and validates the snapshot
   CHECK: node scripts/verify/automation.mjs
   EXPECT: AUTOMATION VERIFIED
-  EVIDENCE: `AUTOMATION VERIFIED` — workflow (schedule, push-triggered gates, tests, static checks, crawl, snapshot, verify, build, app-smoke, change-guarded commit with a non-fatal push, staleness and freshness alerts, README cache), netlify.toml (out/, npm run build, cache headers), 4 incremental-cache tests
+  EVIDENCE: `AUTOMATION VERIFIED` — workflow (schedule, push-triggered gates, tests, static checks, crawl, snapshot, verify, build, app-smoke, change-guarded commit with a non-fatal push, staleness and freshness alerts, README cache), public/.nojekyll and public/CNAME (a missing .nojekyll serves a blank site), GitHub Pages artifact upload + deploy steps, a live-site freshness check, 4 incremental-cache tests
 
 - [x] G10: The DOX tree documents every durable boundary and is internally consistent
   CHECK: node scripts/verify/dox.mjs

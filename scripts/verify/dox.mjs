@@ -45,7 +45,8 @@ const readme = readFileSync("README.md", "utf8");
 for (const needle of [
   "npm run refresh",
   "node scripts/verify/snapshot.mjs",
-  "netlify.toml",
+  "GitHub Pages",
+  "public/.nojekyll",
   "## Caveats",
   "## License",
 ]) {

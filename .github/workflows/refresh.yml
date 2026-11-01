@@ -8,7 +8,7 @@ on:
     - cron: "17 3 * * *"
   workflow_dispatch:
   # Any push that touches the pipeline must pass the same gates before it can
-  # reach Netlify, otherwise a bad deploy ships from the main branch.
+  # reach the live site, otherwise a bad deploy ships from the main branch.
   push:
     branches: [main]
     paths:
@@ -16,13 +16,17 @@ on:
       - "scripts/**"
       - "tests/**"
       - "data/snapshot.json"
+      - "public/**"
       - "package.json"
       - "next.config.ts"
-      - "netlify.toml"
       - ".github/workflows/refresh.yml"
 
 permissions:
+  # contents: write commits the refreshed snapshot back to main.
+  # pages/id-token let the deploy job publish the artifact to GitHub Pages.
   contents: write
+  pages: write
+  id-token: write
 
 # One refresh at a time. A slow run must not be cancelled mid-write, or the
 # snapshot is committed half-built.
@@ -92,13 +96,24 @@ jobs:
       - name: Validate snapshot
         run: node scripts/verify/snapshot.mjs
 
-      # Building here proves the snapshot prerenders. Netlify then rebuilds the
-      # same commit, so this is the gate, not the deploy.
+      # This build is what gets served. GitHub Pages has no build step of its
+      # own, so the artifact uploaded below is the live site.
       - name: Build the site
         run: npm run build
 
       - name: Serve the export and check it
         run: node scripts/verify/app-smoke.mjs
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      # public/.nojekyll and public/CNAME reach out/ because Next copies public/
+      # verbatim. Without .nojekyll, Pages runs Jekyll and silently drops the
+      # _next/ directory, which serves a blank page with no error anywhere.
+      - name: Upload the export
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: out
 
       - name: Commit refreshed snapshot
         id: commit
@@ -111,7 +126,7 @@ jobs:
           git add data/snapshot.json public/llms.txt public/og.png README.md
           # updatedAt is stamped with the crawl time on every run, so on its own
           # it makes the diff always non-empty. Compare everything else, or a day
-          # with no new repo redeploys 460 MB of identical HTML.
+          # with no new repository churns the git history for nothing.
           if node -e '
             const { execSync } = require("child_process");
             const fs = require("fs");
@@ -128,7 +143,7 @@ jobs:
             process.exit(before === after && ogBefore === ogAfter ? 0 : 1);
           '; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "Snapshot unchanged; skipping commit and redeploy."
+            echo "Snapshot unchanged; nothing to commit."
           else
             git commit -m "Refresh Heretic snapshot"
             # A push can be rejected if the branch moved while this ran. The
@@ -142,6 +157,19 @@ jobs:
             fi
           fi
 
+  # Pages publishes the artifact the refresh job uploaded. It runs only when the
+  # build and the gates above succeeded, so a failed crawl leaves the previous
+  # deployment serving rather than publishing a half-built one.
+  deploy:
+    needs: refresh
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
+
   # A failed refresh leaves the site on the last good data, which is the correct
   # outcome, but silence is not. This job exists to say so out loud.
   staleness-alert:
@@ -154,16 +182,20 @@ jobs:
           echo "::error::The daily Heretic refresh did not complete. The site is still" \
                "serving the last good snapshot; no data was lost."
 
-  # A daily schedule in a public repo is disabled after 60 days without
-  # repository activity. The bot's own commit counts as activity, but only while
-  # the refresh keeps succeeding, so nothing below is a substitute for the bot
-  # committing. This is a belt-and-braces check, not the mechanism.
+  # Both this and the schedule exist because the two failure modes are different:
+  # the schedule dies after 60 days without a commit, and a green refresh says
+  # nothing about whether the deploy reached the public site.
   verify-freshness:
-    needs: refresh
+    needs: [refresh, deploy]
     if: always()
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
       - name: How old is the committed snapshot?
         run: |
           node -e '
@@ -174,4 +206,45 @@ jobs:
             if (ageDays > 3) {
               console.log(`::warning::Snapshot is ${ageDays.toFixed(1)} days old. The refresh job may be failing.`);
             }
+          '
+
+      # A green refresh proves the snapshot is fresh in git. It says nothing
+      # about the deployed site: on 2026-10-20 the pipeline succeeded daily for
+      # twelve days while the live site stayed frozen, and nothing failed.
+      - name: Is the live site serving the committed snapshot?
+        run: |
+          node -e '
+            const fs = require("fs");
+            const site = "https://hdir.sdad.pro/data/index.json";
+            const committed = JSON.parse(fs.readFileSync("data/snapshot.json", "utf8"));
+            const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+            (async () => {
+              // Pages takes a moment to serve a fresh deployment, and the edge
+              // caches /data for a few minutes, so a single fetch can read the
+              // previous deployment. Re-check before calling it stale.
+              for (let attempt = 1; attempt <= 4; attempt += 1) {
+                try {
+                  const response = await fetch(site, { cache: "no-store" });
+                  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                  const live = await response.json();
+                  const lag =
+                    (Date.parse(committed.updatedAt) - Date.parse(live.updatedAt)) / 86400000;
+                  console.log(`committed ${committed.updatedAt} | live ${live.updatedAt} | ${lag.toFixed(2)} days behind`);
+                  if (lag <= 1) {
+                    console.log("Live site is in step with the committed snapshot.");
+                    return;
+                  }
+                } catch (error) {
+                  console.log(`attempt ${attempt}: ${error.message}`);
+                }
+                if (attempt < 4) await sleep(30000);
+              }
+              console.log(
+                "::error::The live site is more than a day behind the committed snapshot. " +
+                  "The pipeline is green, so this is the deploy not reaching GitHub Pages: " +
+                  "check the Pages deployment and the custom domain."
+              );
+              process.exit(1);
+            })();
           '

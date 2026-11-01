@@ -46,12 +46,12 @@ export function trimNumber(value: number): string {
 }
 
 /**
- * Origin and repo ids contain a slash and mixed case, but Netlify lowercases
- * every path it serves. Emitting the id verbatim means each model and repo URL
- * costs a 301 to the lowercase form and the canonical tag points at a
- * redirecting URL. Everything that builds a URL lowercases it, so the built
- * directory, the sitemap and the canonical all agree with what is served.
- * Lookups stay case-insensitive in `lib/dataset.ts`.
+ * Origin and repo ids contain a slash and mixed case. Every path this site has
+ * ever published is lowercase and those URLs are indexed, so emitting the id
+ * verbatim would mint a second, differently-cased URL for the same page.
+ * Everything that builds a URL lowercases it, so the built directory, the
+ * sitemap and the canonical all agree with what is already linked. Lookups
+ * stay case-insensitive in `lib/dataset.ts`.
  */
 function idPath(id: string): string {
   return id
