@@ -68,21 +68,32 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
-          HEAD_REF: ${{ github.event.pull_request.head.ref }}
           PR: ${{ github.event.pull_request.number }}
         run: |
-          # CI starts at the same moment as this workflow. Reading checks before
-          # it has registered would say "no checks reported" and merge unproven
-          # code, so wait for the run to exist first.
-          for attempt in $(seq 1 40); do
-            status=$(gh run list --repo "$REPO" --workflow CI --branch "$HEAD_REF" \
-              --limit 1 --json status --jq '.[0].status // empty')
-            if [ -n "$status" ]; then
-              echo "CI run is $status"
-              break
+          # This workflow is itself a check on the pull request, so
+          # `gh pr checks --watch` would sit waiting on its own pending job
+          # forever - a deadlock, not a wait. Poll instead and ignore this
+          # job's own check. Fail closed on the deadline: a bump that never
+          # got proven stays open rather than merging unproven.
+          deadline=$((SECONDS + 1200))
+          verdict=WAIT
+          while [ "$SECONDS" -lt "$deadline" ]; do
+            verdict=$(gh pr checks "$PR" --repo "$REPO" --json name,bucket --jq '
+              [.[] | select(.name != "auto-merge")]
+              | if length == 0 then "WAIT"
+                elif any(.[]; .bucket == "fail" or .bucket == "cancel") then "FAIL"
+                elif any(.[]; .bucket == "pending") then "WAIT"
+                else "PASS" end' 2>/dev/null || echo WAIT)
+            echo "checks: $verdict"
+            if [ "$verdict" = "PASS" ]; then break; fi
+            if [ "$verdict" = "FAIL" ]; then
+              echo "CI did not pass; leaving this pull request open."
+              exit 1
             fi
-            echo "waiting for the CI run to register ($attempt/40)"
-            sleep 15
+            sleep 20
           done
-          gh pr checks "$PR" --repo "$REPO" --watch --fail-fast --interval 15
+          if [ "$verdict" != "PASS" ]; then
+            echo "Timed out waiting for checks; leaving this pull request open."
+            exit 1
+          fi
           gh pr merge "$PR" --repo "$REPO" --squash --delete-branch
