@@ -52,8 +52,8 @@ jobs:
         run: |
           allowed=no
           case "$ECO:$UPDATE" in
-            github-actions:version-update:semver-patch) allowed=yes ;;
-            github-actions:version-update:semver-minor) allowed=yes ;;
+            github_actions:version-update:semver-patch) allowed=yes ;;
+            github_actions:version-update:semver-minor) allowed=yes ;;
           esac
           case "$UPDATE" in
             version-update:semver-patch) allowed=yes ;;
