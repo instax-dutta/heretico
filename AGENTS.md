@@ -103,7 +103,8 @@ ablation recipes, and ranks them by KL divergence and refusal rate.
 - Internal links are plain `<a>` anchors, never `next/link`. The App Router
   emits four RSC payloads per route (21,468 files, 254 MB);
   `scripts/prune-rsc-payloads.ts` deletes them so the export fits GitHub
-  Pages, and a `<Link>` would fetch files that are no longer published.
+  Pages, leaving about 5,400 files and 160 MB, and a `<Link>` would fetch files
+  that are no longer published.
 - Actions are pinned to 40-character commit SHAs, never tags: the workflow
   holds `contents: write` and `pages: write`, so a moved tag would run
   attacker code with push rights. Dependabot moves the pins weekly, and action
@@ -131,6 +132,24 @@ ablation recipes, and ranks them by KL divergence and refusal rate.
 - Route types are generated into `.next/`, which is gitignored: run
   `next typegen` (or `npm run typecheck`) before expecting tsc to see
   `PageProps`/`LayoutProps` in a fresh clone.
+
+### Automation
+
+- Four workflows, all in `.github/workflows/`:
+  - `refresh.yml` — the only path that publishes: crawl, snapshot, gates,
+    build, prune, Pages upload, commit, deploy, live-freshness check. Daily
+    03:17 UTC, on demand, and on any push to `main` touching the pipeline.
+  - `ci.yml` — the same gates plus `pages-dry-run` on every pull request.
+  - `dependabot-auto-merge.yml` — merges dependency bumps once CI is green.
+  - Dependabot's own updater — weekly, Monday.
+- A failed refresh opens a labelled `refresh-failure` issue and the next green
+  run closes it. An open issue therefore means "broken right now". The repair
+  list is in `scripts/AGENTS.md`, not here.
+- Two repository secrets: `HF_TOKEN` (required, read-only) and
+  `AUTOMERGE_TOKEN` (fine-grained PAT; without it action bumps wait for one
+  click).
+- Deployed to GitHub Pages at `hdir.sdad.pro`. The domain is written once, in
+  `src/lib/site.ts`; nothing else hardcodes it.
 
 ### Documentation Map
 

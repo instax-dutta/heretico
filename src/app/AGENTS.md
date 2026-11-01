@@ -55,8 +55,15 @@ plus one JSON index for browser-side filtering.
 - **Internal links are plain `<a>` anchors, never `next/link`.** Soft
   navigation is what makes the App Router emit four RSC payload files per
   route (21,468 files, 254 MB). `scripts/prune-rsc-payloads.ts` deletes them
-  so the export fits GitHub Pages, and a `<Link>` would fetch files that are
-  no longer published. `verify/app-smoke.mjs` fails if any payload survives.
+  so the export fits GitHub Pages; what ships is about 5,400 files and 160 MB.
+  A `<Link>` would fetch files that are no longer published.
+  `verify/app-smoke.mjs` fails if any payload survives.
+- `robots.ts` is a bandwidth decision, not a licensing one. Search and AI
+  crawlers are allowed because the site publishes `llms.txt` for them,
+  full-site scrapers (Ahrefs, Semrush, MJ12, PetalBot, Bytespider and similar)
+  are refused, and everyone else gets `CrawlDelay: 5`. GitHub Pages allows
+  roughly 200 full passes of a 160 MB export per month, and one aggressive
+  crawler would spend most of it.
 - Route params are promises in this Next version: `const { id } = await params`.
 - Metadata comes from `generateMetadata`/`metadata`, with a canonical path.
 - Page copy must not claim what the data cannot support (see methodology).

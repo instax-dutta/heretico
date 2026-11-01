@@ -356,14 +356,18 @@ card.
 Nothing here needs a person on a good day, and the parts that could fail
 silently are wired to say so.
 
-- **Dependabot** watches npm and the pinned actions weekly. Patch bumps, and
-  minor bumps of dev-only tooling, are auto-merged **only after CI passes on
-  that exact PR** (`dependabot-auto-merge.yml` waits for the run to register
-  first, so it cannot merge unproven code). Minor production bumps and every
-  major arrive as a PR to read.
+- **Dependabot** watches npm and the pinned actions weekly. Patch bumps, minor
+  bumps of dev-only tooling, and action bumps of **any** size are auto-merged
+  **only after CI passes on that exact PR** (`dependabot-auto-merge.yml` polls
+  the checks rather than watching them, because the workflow is itself a check
+  on the same PR and would otherwise wait forever on its own job). Minor
+  production bumps and npm majors arrive as a PR to read.
 - **`ci.yml`** runs the full gate suite on every pull request, so a bump is
   proven before it reaches `main`. It triggers on `pull_request`, never
-  `pull_request_target`, so a fork PR gets no secrets.
+  `pull_request_target`, so a fork PR gets no secrets. Its `pages-dry-run` job
+  builds the export and runs `configure-pages` / `upload-pages-artifact`
+  without deploying, which is the only thing that makes an action bump
+  provable: those actions otherwise run only from `refresh.yml` on `main`.
 - **A failed daily run opens a labelled GitHub issue** (`refresh-failure`), which
   emails the maintainer and survives the run log; the next successful run closes
   it. An open issue therefore always means "broken right now".
@@ -378,7 +382,12 @@ silently are wired to say so.
 
 ### Security posture
 
-- No `pull_request` code runs with secrets; no `pull_request_target` anywhere.
+- No pull request code runs with secrets. `ci.yml` uses plain `pull_request`.
+  `dependabot-auto-merge.yml` is the single `pull_request_target` workflow,
+  because Dependabot's `pull_request` runs get a read-only token whatever
+  `permissions:` says and a merge needs a writable one. It never checks out the
+  pull request's code and it gates on `dependabot[bot]`; `security.mjs`
+  enforces all three.
 - Actions are pinned to 40-character commit SHAs, not tags, because the workflow
   holds `contents: write` and `pages: write`.
 - A meta CSP is the only header hardening GitHub Pages allows: `default-src
@@ -425,6 +434,14 @@ the index, and the site quietly publishes less than yesterday. `npm run crawl`
 warns loudly when the token is absent, and `scripts/verify/snapshot.mjs` refuses
 a refresh that loses more than 4% of the index, repos, recipes or metrics against
 the committed snapshot.
+
+**Optionally set `AUTOMERGE_TOKEN`.** `GITHUB_TOKEN` cannot merge a pull request
+that edits `.github/workflows/`, and the `workflows` scope is not grantable
+through `permissions:`, so action bumps are the one dependency class the bot
+cannot land by itself. A fine-grained PAT with contents, pull-requests and
+workflows write, limited to this repository, closes that gap. Without it the
+auto-merge job still finishes green: it prints what is missing and leaves the
+PR for one click rather than failing.
 
 **Nothing needs a human.** A failed crawl stops the run and leaves the last good
 snapshot serving, rather than publishing a half-built one. A rejected `git push`
