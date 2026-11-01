@@ -1,0 +1,55 @@
+name: CI
+
+# Runs the same gates the deploy runs, on every pull request. Dependabot opens
+# these, so a dependency bump is proven before it can reach main. This uses
+# `pull_request`, never `pull_request_target`: fork PRs get no secrets, so this
+# workflow cannot be used to read them.
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Unit and integration tests
+        run: npm test
+
+      - name: Static checks
+        run: node scripts/verify/static.mjs
+
+      - name: Snapshot invariants
+        run: node scripts/verify/snapshot.mjs
+
+      # Builds the export and serves it; also asserts the export size and that
+      # the RSC payload prune ran.
+      - name: Serve the export and check it
+        run: node scripts/verify/app-smoke.mjs
+
+      - name: SEO surfaces
+        run: node scripts/verify/seo.mjs
+
+      - name: Automation and hosting config
+        run: node scripts/verify/automation.mjs
+
+      - name: Security posture
+        run: node scripts/verify/security.mjs
+
+      - name: Docs tree
+        run: node scripts/verify/dox.mjs

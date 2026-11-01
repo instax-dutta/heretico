@@ -63,6 +63,32 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full`}
     >
+      {/*
+        GitHub Pages cannot send response headers, so the only hardening
+        available is a meta CSP. It is deliberately conservative: `'self'` for
+        everything, `'unsafe-inline'` only where Next's own hydration scripts
+        and Tailwind's inline styles need it, and no `'unsafe-eval'`. That still
+        blocks external script injection, which is the attack that matters on a
+        site with no login, no forms and no user input.
+
+        `frame-ancestors` is ignored in a meta CSP (browsers require the header
+        for it), so clickjacking protection is the one thing we cannot add here.
+      */}
+      <meta
+        httpEquiv="Content-Security-Policy"
+        content={
+          "default-src 'self'; " +
+          "script-src 'self' 'unsafe-inline'; " +
+          "style-src 'self' 'unsafe-inline'; " +
+          "img-src 'self' data:; " +
+          "font-src 'self' data:; " +
+          "connect-src 'self'; " +
+          "object-src 'none'; " +
+          "base-uri 'self'; " +
+          "form-action 'self'"
+        }
+      />
+      <meta name="referrer" content="strict-origin-when-cross-origin" />
       <body className="flex min-h-full flex-col bg-zinc-950 text-zinc-100">
         <header className="sticky top-0 z-20 border-b border-zinc-800 bg-zinc-950/80 backdrop-blur-md">
           <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-3 px-4 py-3">

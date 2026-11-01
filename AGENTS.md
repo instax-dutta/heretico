@@ -104,6 +104,17 @@ ablation recipes, and ranks them by KL divergence and refusal rate.
   emits four RSC payloads per route (21,468 files, 254 MB);
   `scripts/prune-rsc-payloads.ts` deletes them so the export fits GitHub
   Pages, and a `<Link>` would fetch files that are no longer published.
+- Actions are pinned to 40-character commit SHAs, never tags: the workflow
+  holds `contents: write` and `pages: write`, so a moved tag would run
+  attacker code with push rights. Dependabot moves the pins weekly.
+- No workflow triggers on `pull_request_target`. `ci.yml` uses plain
+  `pull_request` so a fork PR never receives secrets.
+- The CSP meta tag in `src/app/layout.tsx` is the only header hardening
+  GitHub Pages allows. Do not add `unsafe-eval`; keep `default-src 'self'`.
+- `main` is deliberately unprotected. The daily bot pushes the snapshot
+  directly to it, and a required-check ruleset would reject that push and
+  silently stop the site updating. Reduce blast radius instead: pinned
+  actions and per-job `permissions`.
 - `npm test`, `npm run typecheck`, `npm run build` must pass before a commit.
 - Route types are generated into `.next/`, which is gitignored: run
   `next typegen` (or `npm run typecheck`) before expecting tsc to see

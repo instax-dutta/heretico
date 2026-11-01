@@ -207,6 +207,7 @@ results; the oracles are:
 | G8 | `node scripts/verify/seo.mjs` | sitemap URLs resolve, titles unique, robots declares the sitemap |
 | G9 | `node scripts/verify/automation.mjs` | incremental cache behaviour, refresh workflow, GitHub Pages config |
 | G10 | `node scripts/verify/dox.mjs` | the AGENTS.md documentation tree is complete and consistent |
+| G11 | `node scripts/verify/security.mjs` | actions pinned to commit SHAs, CSP present, no tracked secrets, shipped deps clean |
 
 `scripts/verify/snapshot.mjs` is the strict one: it re-derives scores, refusal
 rates, Pareto flags and best picks from the published rows and rejects the
@@ -349,6 +350,46 @@ altogether, which the two client-side explorers need, so it is left alone.
 Set `NEXT_PUBLIC_SITE_URL` only if the site is served from a domain other than
 the default; it drives the canonical tags, sitemap, robots.txt and the social
 card.
+
+### Hands-free upkeep
+
+Nothing here needs a person on a good day, and the parts that could fail
+silently are wired to say so.
+
+- **Dependabot** watches npm and the pinned actions weekly. Patch bumps, and
+  minor bumps of dev-only tooling, are auto-merged **only after CI passes on
+  that exact PR** (`dependabot-auto-merge.yml` waits for the run to register
+  first, so it cannot merge unproven code). Minor production bumps and every
+  major arrive as a PR to read.
+- **`ci.yml`** runs the full gate suite on every pull request, so a bump is
+  proven before it reaches `main`. It triggers on `pull_request`, never
+  `pull_request_target`, so a fork PR gets no secrets.
+- **A failed daily run opens a labelled GitHub issue** (`refresh-failure`), which
+  emails the maintainer and survives the run log; the next successful run closes
+  it. An open issue therefore always means "broken right now".
+- **`HF_TOKEN` is checked before the crawl.** An expired token makes every README
+  fetch return 401, which reads as "this repo has no card" rather than an error,
+  so the job fails with that reason instead of quietly shrinking the index.
+- **`main` is deliberately unprotected.** The daily bot pushes the snapshot
+  straight to it, and a required-check ruleset would reject that push and stop
+  the site updating — the exact silent failure this setup exists to prevent. The
+  blast radius is reduced instead: actions are SHA-pinned, each job declares only
+  the permissions it uses, and secret scanning with push protection is on.
+
+### Security posture
+
+- No `pull_request` code runs with secrets; no `pull_request_target` anywhere.
+- Actions are pinned to 40-character commit SHAs, not tags, because the workflow
+  holds `contents: write` and `pages: write`.
+- A meta CSP is the only header hardening GitHub Pages allows: `default-src
+  'self'`, no `unsafe-eval`, `object-src 'none'`, `base-uri` and `form-action`
+  constrained. `frame-ancestors` cannot be set from a meta tag, so clickjacking
+  protection is the one thing missing — it matters little on a site with no
+  login, no forms and no user data.
+- JSON-LD is escaped before it goes into a `<script>` tag, on top of origin ids
+  already being constrained to `[A-Za-z0-9_.-]`.
+- GitHub secret scanning and push protection are on; no token-shaped string
+  appears anywhere in the history.
 
 ## Freshness
 

@@ -33,6 +33,14 @@ Offline data pipeline and the runnable oracles behind `GATES.md`.
 - `lib/pool.ts` — bounded concurrency
 - `verify/*.mjs` — gate oracles: `static`, `suite`, `snapshot`, `app-smoke`,
   `seo`, `automation`, `dox`, sharing helpers in `verify/util.mjs`
+- `verify/security.mjs` — G11: actions pinned to SHAs, no
+  `pull_request_target`, dependabot configured, CSP present, no `next/link`
+  in source, no tracked secrets, shipped deps free of high advisories.
+- `../.github/dependabot.yml` — weekly npm + actions updates, grouped so a
+  week is one review rather than twenty.
+- `../.github/workflows/ci.yml` — the full gate suite on every pull request.
+- `../.github/workflows/dependabot-auto-merge.yml` — merges patch bumps and
+  dev minor bumps only after CI passes on that PR.
 - `verify/seo.mjs` also asserts the social card and icons resolve to real files
   with no query string, and that no Next.js template asset is still shipping. A
   broken `og:image` 404s only in someone else's preview, so nothing else catches it.

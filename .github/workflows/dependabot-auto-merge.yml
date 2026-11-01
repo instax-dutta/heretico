@@ -1,0 +1,87 @@
+name: Dependabot auto-merge
+
+# Merges a dependency bump only after CI has passed on that exact PR, and only
+# for bumps that cannot change behaviour unread:
+#
+#   npm patch             - always
+#   npm minor, dev only   - always (lint/test tooling)
+#   npm minor, production - never, read it
+#   npm major             - never, read it
+#   actions patch/minor   - always, the pin moves with the same SHA discipline
+#
+# `main` has no branch protection on purpose: the daily refresh pushes the
+# snapshot straight to it, and a required-check ruleset would reject that push
+# and silently stop the site updating. So the wait for CI is explicit here
+# rather than delegated to GitHub.
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  auto-merge:
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: read
+    steps:
+      - name: What is being bumped?
+        id: meta
+        uses: dependabot/fetch-metadata@21025c705c08248db411dc16f3619e6b5f9ea21a # v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Decide whether it may merge unread
+        id: decide
+        env:
+          ECO: ${{ steps.meta.outputs.package-ecosystem }}
+          UPDATE: ${{ steps.meta.outputs.update-type }}
+          DEP: ${{ steps.meta.outputs.dependency-type }}
+        run: |
+          allowed=no
+          case "$ECO:$UPDATE" in
+            github-actions:version-update:semver-patch) allowed=yes ;;
+            github-actions:version-update:semver-minor) allowed=yes ;;
+          esac
+          case "$UPDATE" in
+            version-update:semver-patch) allowed=yes ;;
+            version-update:semver-minor)
+              if [ "$DEP" = "direct:development" ]; then allowed=yes; fi ;;
+          esac
+          echo "Allowed to auto-merge: $allowed (ecosystem=$ECO update=$UPDATE dependency=$DEP)"
+          echo "allowed=$allowed" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for the CI run to appear, then for it to pass
+        if: steps.decide.outputs.allowed == 'yes'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          # The CI workflow and this one start at the same moment. Waiting on
+          # `gh pr checks` before CI has registered would read "no checks
+          # reported" and merge unproven code, so wait for the run to exist.
+          for attempt in $(seq 1 40); do
+            status=$(gh run list --repo "$REPO" --workflow CI --branch "$HEAD_REF" \
+              --limit 1 --json status --jq '.[0].status // empty')
+            if [ -n "$status" ]; then
+              echo "CI run is $status"
+              break
+            fi
+            echo "waiting for the CI run to register ($attempt/40)"
+            sleep 15
+          done
+          gh pr checks "$PR" --repo "$REPO" --watch --fail-fast --interval 15
+
+      - name: Merge
+        if: steps.decide.outputs.allowed == 'yes'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: gh pr merge "$PR" --repo "$REPO" --squash --delete-branch

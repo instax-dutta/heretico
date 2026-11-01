@@ -75,7 +75,7 @@ function confLabel(confidence: RepoRecord["metrics"]["confidence"]): string {
  * two source metrics and their provenance travel together.
  */
 function datasetLd(origin: Origin, best: Recipe | null, updatedAt: string): string {
-  return JSON.stringify({
+  const json = JSON.stringify({
     "@context": "https://schema.org",
     "@type": "Dataset",
     name: `Heretic conversions of ${origin.id}`,
@@ -103,6 +103,11 @@ function datasetLd(origin: Origin, best: Recipe | null, updatedAt: string): stri
         }
       : {}),
   });
+  // Embedded inside a <script> tag, so `<` must not be able to close it early.
+  // Origin ids are already constrained to [A-Za-z0-9_.-], which makes this
+  // unreachable today; escaping it means it stays unreachable if that ever
+  // loosens.
+  return json.replace(/</g, "\\u003c").replace(/>/g, "\\u003e").replace(/&/g, "\\u0026");
 }
 
 export default async function ModelPage({ params }: PageProps<"/models/[...id]">) {
