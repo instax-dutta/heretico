@@ -21,10 +21,26 @@ for (const file of workflows) {
   // Parse the trigger block rather than scanning the text: a comment that
   // explains why `pull_request_target` is avoided must not count as using it.
   const triggers = Object.keys(parse(text).on ?? {});
-  assert(
-    !triggers.includes("pull_request_target"),
-    `${file} triggers on pull_request_target, which hands repository secrets to fork PRs`,
-  );
+  if (triggers.includes("pull_request_target")) {
+    // `pull_request_target` is the standard "pwn request" vector because it
+    // runs with a write token while the fork controls the checked-out code.
+    // Dependabot is the one case that needs it: its `pull_request` runs are
+    // forced read-only no matter what `permissions:` says, so an auto-merge
+    // there cannot work. Narrow exception, with the two conditions that keep
+    // it safe.
+    assert(
+      file === "dependabot-auto-merge.yml",
+      `${file} triggers on pull_request_target, which hands repository secrets to fork PRs`,
+    );
+    assert(
+      !/\bactions\/checkout\b/.test(text),
+      `${file}: pull_request_target must never check out the pull request's code`,
+    );
+    assert(
+      /dependabot\[bot\]/.test(text),
+      `${file}: pull_request_target must be gated to dependabot[bot]`,
+    );
+  }
   for (const line of text.split("\n")) {
     const match = /^\s*(?:-\s*)?uses:\s*(\S+)/.exec(line);
     if (!match) continue;

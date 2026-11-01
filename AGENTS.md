@@ -107,8 +107,12 @@ ablation recipes, and ranks them by KL divergence and refusal rate.
 - Actions are pinned to 40-character commit SHAs, never tags: the workflow
   holds `contents: write` and `pages: write`, so a moved tag would run
   attacker code with push rights. Dependabot moves the pins weekly.
-- No workflow triggers on `pull_request_target`. `ci.yml` uses plain
-  `pull_request` so a fork PR never receives secrets.
+- No workflow triggers on `pull_request_target` except
+  `dependabot-auto-merge.yml`, which needs a writable token that Dependabot's
+  forced read-only `pull_request` runs cannot give. That file must never
+  contain `actions/checkout` and must gate on `dependabot[bot]`; `security.mjs`
+  enforces all three. `ci.yml` uses plain `pull_request`, so a fork PR never
+  receives secrets.
 - The CSP meta tag in `src/app/layout.tsx` is the only header hardening
   GitHub Pages allows. Do not add `unsafe-eval`; keep `default-src 'self'`.
 - `main` is deliberately unprotected. The daily bot pushes the snapshot

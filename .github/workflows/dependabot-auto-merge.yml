@@ -1,27 +1,35 @@
 name: Dependabot auto-merge
 
-# Merges a dependency bump only after CI has passed on that exact PR, and only
-# for bumps that cannot change behaviour unread:
+# Dependabot-triggered `pull_request` workflows receive a READ-ONLY
+# GITHUB_TOKEN no matter what `permissions:` says, so a merge attempted there
+# cannot work. `pull_request_target` runs in the base-branch context with a
+# writable token.
 #
+# That event is the well-known "pwn request" vector, and it is safe here for one
+# reason only: this workflow never checks out, builds, or executes the pull
+# request's code. It reads PR metadata and calls the API. If a checkout of
+# `github.event.pull_request.head` is ever added here, delete this workflow
+# instead - the trade stops being safe at that moment.
+#
+# Merges only bumps that cannot change behaviour unread:
 #   npm patch             - always
 #   npm minor, dev only   - always (lint/test tooling)
 #   npm minor, production - never, read it
 #   npm major             - never, read it
-#   actions patch/minor   - always, the pin moves with the same SHA discipline
+#   actions patch/minor   - always
 #
 # `main` has no branch protection on purpose: the daily refresh pushes the
 # snapshot straight to it, and a required-check ruleset would reject that push
-# and silently stop the site updating. So the wait for CI is explicit here
-# rather than delegated to GitHub.
-on:
-  pull_request:
+# and silently stop the site updating. So the wait for CI is explicit below.
+on: pull_request_target
 
 permissions:
+  # Least privilege for the read-only work; the job adds the two writes it needs.
   contents: read
 
 jobs:
   auto-merge:
-    if: github.actor == 'dependabot[bot]'
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
@@ -55,7 +63,7 @@ jobs:
           echo "Allowed to auto-merge: $allowed (ecosystem=$ECO update=$UPDATE dependency=$DEP)"
           echo "allowed=$allowed" >> "$GITHUB_OUTPUT"
 
-      - name: Wait for the CI run to appear, then for it to pass
+      - name: Wait for CI, then merge only if it passed
         if: steps.decide.outputs.allowed == 'yes'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -63,9 +71,9 @@ jobs:
           HEAD_REF: ${{ github.event.pull_request.head.ref }}
           PR: ${{ github.event.pull_request.number }}
         run: |
-          # The CI workflow and this one start at the same moment. Waiting on
-          # `gh pr checks` before CI has registered would read "no checks
-          # reported" and merge unproven code, so wait for the run to exist.
+          # CI starts at the same moment as this workflow. Reading checks before
+          # it has registered would say "no checks reported" and merge unproven
+          # code, so wait for the run to exist first.
           for attempt in $(seq 1 40); do
             status=$(gh run list --repo "$REPO" --workflow CI --branch "$HEAD_REF" \
               --limit 1 --json status --jq '.[0].status // empty')
@@ -77,11 +85,4 @@ jobs:
             sleep 15
           done
           gh pr checks "$PR" --repo "$REPO" --watch --fail-fast --interval 15
-
-      - name: Merge
-        if: steps.decide.outputs.allowed == 'yes'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REPO: ${{ github.repository }}
-          PR: ${{ github.event.pull_request.number }}
-        run: gh pr merge "$PR" --repo "$REPO" --squash --delete-branch
+          gh pr merge "$PR" --repo "$REPO" --squash --delete-branch
