@@ -34,5 +34,11 @@ updates:
     commit-message:
       prefix: ci
     groups:
-      actions:
+      # Without `update-types` the group swallows majors too, and a grouped PR
+      # reports only its highest bump. One major in the group then makes the
+      # whole thing `semver-major`, which the auto-merge refuses - so the pinned
+      # SHAs would never refresh. Group the safe changes; let a major arrive on
+      # its own where a human reads it.
+      actions-patch-minor:
         patterns: ["*"]
+        update-types: ["minor", "patch"]
