@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { RecipeTable } from "@/components/RecipeTable";
-import { Badge, Breadcrumbs, Card, MetricLegend, ScorePill, VerificationBadge } from "@/components/ui";
+import { Badge, Breadcrumbs, Card, HubLink, MetricLegend, ScorePill, VerificationBadge } from "@/components/ui";
 import {
   getFamily,
   getOrigin,
@@ -143,14 +143,13 @@ export default async function ModelPage({ params }: PageProps<"/models/[...id]">
             <h1 className="text-2xl font-semibold tracking-tight">{origin.displayName}</h1>
             <p className="font-mono text-xs text-zinc-500">{origin.id}</p>
           </div>
-          <a
+          <HubLink
+            id={origin.id}
+            linkStatus={origin.linkStatus}
             className="text-sm underline"
-            href={huggingFaceUrl(origin.id)}
-            rel="noreferrer"
-            target="_blank"
           >
             Original model on Hugging Face
-          </a>
+          </HubLink>
         </div>
         <p className="mt-2 max-w-2xl text-sm text-zinc-400">
           {recipes.length > 0 ? (
@@ -188,14 +187,13 @@ export default async function ModelPage({ params }: PageProps<"/models/[...id]">
                 {best.pareto ? <Badge tone="accent">Pareto</Badge> : null}
                 <VerificationBadge verification={best.verification} />
               </div>
-              <a
+              <HubLink
+                id={best.bestRepoId}
+                linkStatus={bestRepo?.linkStatus ?? "ok"}
                 className="text-lg font-semibold hover:underline"
-                href={huggingFaceUrl(best.bestRepoId)}
-                rel="noreferrer"
-                target="_blank"
               >
                 {best.bestRepoId}
-              </a>
+              </HubLink>
               <div className="text-zinc-400">
                 by {best.author}
                 {best.hereticVersion ? ` · Heretic v${best.hereticVersion}` : ""} ·{" "}
@@ -302,14 +300,13 @@ export default async function ModelPage({ params }: PageProps<"/models/[...id]">
                   {repo.metrics.confidence === "none" ? (
                     // No /repo/ page is generated for an artifact that published
                     // no numbers, so send these straight to the Hub.
-                    <a
+                    <HubLink
+                      id={repo.id}
+                      linkStatus={repo.linkStatus}
                       className="hover:underline"
-                      href={huggingFaceUrl(repo.id)}
-                      rel="noreferrer"
-                      target="_blank"
                     >
                       {repo.id.split("/").pop()}
-                    </a>
+                    </HubLink>
                   ) : (
                     <a href={repoHref(repo.id)} className="hover:underline">
                       {repo.id.split("/").pop()}

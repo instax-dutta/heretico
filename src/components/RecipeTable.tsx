@@ -3,11 +3,10 @@ import {
   formatParams,
   formatPercent,
   formatKl,
-  huggingFaceUrl,
   originHref,
 } from "@/lib/format";
 import type { LeaderboardRow } from "@/lib/query";
-import { Badge, ScorePill, VerificationBadge } from "./ui";
+import { Badge, HubLink, ScorePill, VerificationBadge } from "./ui";
 
 export function RecipeTable({
   rows,
@@ -99,14 +98,13 @@ export function RecipeTable({
                   </td>
                 ) : null}
                 <td className="py-2 pr-3">
-                  <a
+                  <HubLink
+                    id={recipe.bestRepoId}
+                    linkStatus={recipe.linkStatus}
                     className="hover:underline"
-                    href={huggingFaceUrl(recipe.bestRepoId)}
-                    rel="noreferrer"
-                    target="_blank"
                   >
                     {recipe.author}
-                  </a>
+                  </HubLink>
                 </td>
                 <td className="py-2 pr-3 text-right tabular-nums">
                   {formatParams(origin.paramsB, origin.paramsActiveB, origin.moe)}

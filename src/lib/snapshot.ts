@@ -4,6 +4,7 @@ import { detectFormats, familyFor, parseParams, quantLabel, sizeClassFor } from 
 import type {
   Benchmark,
   Family,
+  LinkStatus,
   Origin,
   ParsedCard,
   RawRepo,
@@ -16,6 +17,8 @@ export interface RawDataset {
   crawledAt: string;
   repos: RawRepo[];
   cards: Record<string, ParsedCard | null>;
+  /** Whether each declared origin id resolves to a live HF page. */
+  originLinkStatus: Record<string, LinkStatus>;
 }
 
 export const SNAPSHOT_SCHEMA_VERSION = 1;
@@ -105,11 +108,17 @@ export function buildSnapshot(
       hereticVersion: input.card?.hereticVersion ?? null,
       parentIds: classification.parents,
       verified: true,
+      linkStatus: input.repo.linkStatus,
       classificationEvidence: classification.evidence,
       firstSeenAt: input.repo.createdAt,
     };
   });
   const repoById = new Map(repos.map((repo) => [repo.id, repo]));
+
+  // Link status of each recipe's bestRepoId, for rendering Hub links safely.
+  for (const recipe of recipes) {
+    recipe.linkStatus = repoById.get(recipe.bestRepoId)?.linkStatus ?? "ok";
+  }
 
   // Fill parameters on recipes from their evidence repo / artifacts.
   for (const recipe of recipes) {
@@ -176,6 +185,7 @@ export function buildSnapshot(
       bestKl: best?.kl ?? null,
       bestRefusalRate: best?.refusalRate ?? null,
       verifiedRepoCount: members.length,
+      linkStatus: dataset.originLinkStatus[originId] ?? "ok",
       downloadsAllTime: members.reduce((sum, repo) => sum + repo.downloadsAllTime, 0),
       downloads30d: members.reduce((sum, repo) => sum + repo.downloads30d, 0),
       lastModified: members

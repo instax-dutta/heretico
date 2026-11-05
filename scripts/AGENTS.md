@@ -32,7 +32,11 @@ Offline data pipeline and the runnable oracles behind `GATES.md`.
 - `lib/incremental.ts` — sha + `PARSER_VERSION` keyed cache decision (unit-tested)
 - `lib/pool.ts` — bounded concurrency
 - `verify/*.mjs` — gate oracles: `static`, `suite`, `snapshot`, `app-smoke`,
-  `seo`, `automation`, `dox`, sharing helpers in `verify/util.mjs`
+  `seo`, `automation`, `dox`, `links`, sharing helpers in `verify/util.mjs`
+- `verify/links.mjs` — G-links: HEAD-checks every Hugging Face link target
+  referenced by the committed snapshot. Fails on dead artifact repos (404),
+  warns on dead origins and gated repos. Runs only in `refresh.yml`, never in
+  `npm test` (the suite must stay offline).
 - `verify/security.mjs` — G11: actions pinned to SHAs, `pull_request_target`
   confined to `dependabot-auto-merge.yml` and then only without
   `actions/checkout` and gated to `dependabot[bot]`, `ci.yml` still running the
@@ -140,5 +144,6 @@ What breaks, how to tell, and the repair. Most of it is one of five causes.
 ## Verification
 
 - `node scripts/verify/snapshot.mjs`
+- `node scripts/verify/links.mjs` (requires HF_TOKEN; runs in refresh.yml only)
 - `node scripts/verify/automation.mjs`
 - `node scripts/verify/app-smoke.mjs`

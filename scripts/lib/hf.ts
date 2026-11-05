@@ -7,6 +7,8 @@
  * only per-repo request is the README.
  */
 
+import type { LinkStatus, RawRepo } from "@/lib/types";
+
 const HF = "https://huggingface.co";
 
 export const DISCOVERY_EXPANDS = [
@@ -166,7 +168,7 @@ export async function discoverHereticModels(
   return { tagged, named, merged };
 }
 
-export function toRawRepo(model: HFRawModel) {
+export function toRawRepo(model: HFRawModel): RawRepo {
   const cardData = model.cardData ?? {};
   const cardBase = cardData.base_model;
   const declared = [
@@ -195,10 +197,11 @@ export function toRawRepo(model: HFRawModel) {
     cardBaseModel: typeof cardBase === "string" ? cardBase : null,
     cardQuantizedBy:
       typeof cardData.quantized_by === "string" ? cardData.quantized_by : null,
-    safetensorsTotal: model.safetensors?.total ?? null,
-    files,
-    license: typeof cardData.license === "string" ? cardData.license : null,
-  };
+  safetensorsTotal: model.safetensors?.total ?? null,
+  files,
+  license: typeof cardData.license === "string" ? cardData.license : null,
+  linkStatus: "ok",
+};
 }
 
 /** README text, trying the two common casings. */
@@ -213,4 +216,57 @@ export async function fetchReadme(id: string, options: RequestOptions = {}): Pro
     }
   }
   return null;
+}
+
+/**
+ * Check whether a Hugging Face repo id resolves to a live page.
+ *
+ * Uses a HEAD request so we never download the repo body. Returns:
+ *   "ok"   — 200 or 3xx after redirect, the link target is alive
+ *   "gated" — 401 or 403, the repo exists but requires authentication
+ *   "dead"  — 404, the repo was deleted or renamed
+ *
+ * Retries 429 and 5xx; one failing check never throws.
+ */
+export async function checkLink(
+  id: string,
+  options: RequestOptions = {},
+): Promise<LinkStatus> {
+  const retries = options.retries ?? 4;
+  const headers: Record<string, string> = { "User-Agent": "heretic-directory-crawler" };
+  if (options.token) headers.Authorization = `Bearer ${options.token}`;
+
+  for (let attempt = 0; attempt < retries; attempt += 1) {
+    try {
+      const response = await fetch(`${HF}/${id}`, {
+        method: "HEAD",
+        headers,
+        signal: AbortSignal.timeout(30_000),
+      });
+      if (response.status === 200 || response.status === 301 || response.status === 302) {
+        return "ok";
+      }
+      if (response.status === 401 || response.status === 403) {
+        return "gated";
+      }
+      if (response.status === 404) {
+        return "dead";
+      }
+      if (response.status === 429 || response.status >= 500) {
+        if (attempt === retries - 1) break;
+        options.onRetry?.(id, attempt + 1, response.status);
+        const retryAfter = Number(response.headers.get("retry-after") ?? "0");
+        await sleep(Math.min(retryAfter > 0 ? retryAfter * 1000 : 1000 * 3 ** attempt, 30_000));
+        continue;
+      }
+      // Any other status: treat as dead rather than aborting the crawl.
+      return "dead";
+    } catch {
+      if (attempt === retries - 1) break;
+      options.onRetry?.(id, attempt + 1, 0);
+      await sleep(1000 * 2 ** attempt);
+    }
+  }
+  // Exhausted retries: we can't confirm the link, so treat it as dead.
+  return "dead";
 }

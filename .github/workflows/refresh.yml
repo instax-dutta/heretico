@@ -113,6 +113,14 @@ jobs:
       - name: Validate snapshot
         run: node scripts/verify/snapshot.mjs
 
+      # Check every HF link target in the snapshot. Fails on dead artifact
+      # repos (404), warns on dead origins and gated repos. Runs only in the
+      # refresh workflow, which has HF_TOKEN and network access.
+      - name: Check HF links
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: node scripts/verify/links.mjs
+
       # This build is what gets served. GitHub Pages has no build step of its
       # own, so the artifact uploaded below is the live site.
       - name: Build the site

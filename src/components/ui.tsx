@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
-import { formatScore } from "@/lib/format";
-import type { Verification } from "@/lib/types";
+import { formatScore, huggingFaceUrl } from "@/lib/format";
+import type { LinkStatus, Verification } from "@/lib/types";
 
 export function Card({
   children,
@@ -97,19 +97,57 @@ export function MetricLegend() {
 }
 
 export function Breadcrumbs({ items }: { items: { label: string; href?: string }[] }) {  return (
-    <nav className="mb-4 flex flex-wrap items-center gap-1 text-xs text-zinc-500">
-      {items.map((item, index) => (
-        <span key={`${item.label}-${index}`} className="flex items-center gap-1">
-          {index > 0 ? <span aria-hidden>›</span> : null}
-          {item.href ? (
-            <a className="hover:underline" href={item.href}>
-              {item.label}
-            </a>
-          ) : (
-            <span className="text-zinc-300">{item.label}</span>
-          )}
-        </span>
-      ))}
-    </nav>
+  <nav className="mb-4 flex flex-wrap items-center gap-1 text-xs text-zinc-500">
+    {items.map((item, index) => (
+      <span key={`${item.label}-${index}`} className="flex items-center gap-1">
+        {index > 0 ? <span aria-hidden>›</span> : null}
+        {item.href ? (
+          <a className="hover:underline" href={item.href}>
+            {item.label}
+          </a>
+        ) : (
+          <span className="text-zinc-300">{item.label}</span>
+        )}
+      </span>
+    ))}
+  </nav>
+);
+}
+
+/**
+ * A link to a Hugging Face repo, rendered conditionally on its link status.
+ *
+ * - "ok": normal anchor link
+ * - "gated": anchor link with a "gated" badge (the repo exists but requires auth)
+ * - "dead": plain text only (the repo was deleted or renamed; do not link)
+ */
+export function HubLink({
+  id,
+  linkStatus,
+  children,
+  className,
+}: {
+  id: string;
+  linkStatus: LinkStatus;
+  children: ReactNode;
+  className?: string;
+}) {
+  if (linkStatus === "dead") {
+    return <span className={className}>{children}</span>;
+  }
+  return (
+    <a
+      href={huggingFaceUrl(id)}
+      className={className}
+      rel="noreferrer"
+      target="_blank"
+    >
+      {children}
+      {linkStatus === "gated" && (
+        <Badge tone="warn" title="This repository exists on Hugging Face but is gated or private. You need to be logged in and approved to view it.">
+          gated
+        </Badge>
+      )}
+    </a>
   );
 }

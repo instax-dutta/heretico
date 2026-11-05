@@ -23,6 +23,7 @@ function repo(id: string, overrides: Partial<RawRepo> = {}): RawRepo {
     safetensorsTotal: null,
     files: [],
     license: null,
+    linkStatus: "ok",
     ...overrides,
   };
 }

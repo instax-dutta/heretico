@@ -72,6 +72,11 @@ plus one JSON index for browser-side filtering.
 
 - Build rows for tables with `lib/query` helpers instead of duplicating sorting.
 - Link only to routes that exist in this tree.
+- External Hugging Face links use the `HubLink` component from
+  `components/ui.tsx`, which renders plain text for dead link targets
+  (`linkStatus === "dead"`) and a labelled link for gated ones
+  (`linkStatus === "gated"`). Never render `huggingFaceUrl()` directly as an
+  anchor without checking `linkStatus` first.
 - Keep markup semantic and unstyled-by-default; visual design is a later phase.
 
 ## Verification

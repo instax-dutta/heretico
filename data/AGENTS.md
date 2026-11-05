@@ -17,13 +17,15 @@ Committed snapshot and local crawl caches.
 
 - `snapshot.json` follows `Snapshot` in `src/lib/types.ts` with
   `schemaVersion: 1`. Breaking changes bump the version and update the validator.
+- Every `RepoRecord`, `Origin` and `Recipe` carries `linkStatus` ("ok" |
+  "gated" | "dead") from the crawl's HEAD check of the HF link target.
 - It contains only verified repos. Unverified discoveries are counted in
   `totals.repos` but omitted, so no page links to an unproven model.
 - Every recipe stores the exact origin, evidence repo, artifacts, metrics and
   `verification`; derived fields (score, Pareto, best pick) must be recomputable
   by `scripts/verify/snapshot.mjs`, which also rejects an unverified best pick.
 - Regeneration order is always `npm run crawl` → `npm run snapshot` → tests →
-  `node scripts/verify/snapshot.mjs`.
+  `node scripts/verify/snapshot.mjs` → `node scripts/verify/links.mjs`.
 
 ## Work Guidance
 
@@ -33,4 +35,5 @@ Committed snapshot and local crawl caches.
 ## Verification
 
 - `node scripts/verify/snapshot.mjs`
+- `node scripts/verify/links.mjs` (requires HF_TOKEN; runs in refresh.yml only)
 - `node scripts/verify/automation.mjs`

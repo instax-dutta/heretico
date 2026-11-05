@@ -8,7 +8,7 @@ model directory) that filter the snapshot in the browser.
 ## Ownership
 
 - `ui.tsx` — primitives (Card, Stat, Badge, ScorePill, VerificationBadge,
-  Breadcrumbs, MetricLegend)
+  Breadcrumbs, MetricLegend, HubLink)
 - `RecipeTable.tsx` — ranked table, safe in server and client trees
 - `LeaderboardExplorer.tsx` — client filters, URL state, pagination
 - `ModelExplorer.tsx` — client model search and pagination
@@ -29,6 +29,11 @@ model directory) that filter the snapshot in the browser.
 - **Link with `<a href>`, not `next/link`.** The export prunes the App
   Router's RSC payloads; a `<Link>` would prefetch files that no longer
   exist and fall back to a full navigation anyway, with a console error.
+- External Hugging Face links use `HubLink` from `ui.tsx`, never raw
+  `huggingFaceUrl()` anchors. `HubLink` renders plain text for dead targets
+  (`linkStatus === "dead"`) and a labelled link for gated ones
+  (`linkStatus === "gated"`). Always check `linkStatus` on the `RepoRecord`,
+  `Origin` or `Recipe` before rendering an external link.
 - **Jargon is never left undefined.** A term used in a table header, a badge or
   a sentence is defined in `Glossary.tsx` and reachable from the page that uses
   it. `MetricLegend` spells out the numeric columns in one line under the table,

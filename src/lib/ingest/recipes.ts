@@ -239,6 +239,7 @@ export function buildRecipes(inputs: RecipeInput[]): RecipeBuild {
       lastModified,
       benchmarks: evidence.card?.benchmarks ?? [],
       evidenceRepoId: evidence.repo.id,
+      linkStatus: "ok",
     });
   }
 

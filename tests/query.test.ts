@@ -33,6 +33,7 @@ function origin(id: string, overrides: Partial<Origin> = {}): Origin {
     downloadsAllTime: 100,
     downloads30d: 10,
     lastModified: "2026-01-01T00:00:00.000Z",
+    linkStatus: "ok",
     ...overrides,
   };
 }
@@ -64,6 +65,7 @@ function recipe(id: string, overrides: Partial<Recipe> = {}): Recipe {
     lastModified: "2026-01-01T00:00:00.000Z",
     benchmarks: [],
     evidenceRepoId: "p-e-w/x",
+    linkStatus: "ok",
     ...overrides,
   };
 }
@@ -108,6 +110,7 @@ function repoRecord(id: string): RepoRecord {
     hereticVersion: null,
     parentIds: [],
     verified: true,
+    linkStatus: "ok",
     classificationEvidence: "",
     firstSeenAt: "2026-01-01T00:00:00.000Z",
   };

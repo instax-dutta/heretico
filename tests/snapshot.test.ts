@@ -22,6 +22,7 @@ function repo(id: string, overrides: Partial<RawRepo> = {}): RawRepo {
     safetensorsTotal: null,
     files: [],
     license: "apache-2.0",
+    linkStatus: "ok",
     ...overrides,
   };
 }
@@ -100,6 +101,10 @@ describe("buildSnapshot", () => {
       }),
       "random/unrelated-heretic-name": card({ baseModelIds: ["acme/Base-7B"] }),
     },
+    originLinkStatus: {
+      "Qwen/Qwen3-4B": "ok",
+      "acme/Base-7B": "dead",
+    },
   };
 
   const snapshot = buildSnapshot(dataset, { updatedAt: "2026-02-01T12:00:00.000Z" });
@@ -148,5 +153,29 @@ describe("buildSnapshot", () => {
   it("is deterministic", () => {
     const again = buildSnapshot(dataset, { updatedAt: "2026-02-01T12:00:00.000Z" });
     expect(JSON.stringify(again)).toBe(JSON.stringify(snapshot));
+  });
+
+  it("carries linkStatus from raw repos to RepoRecord", () => {
+    const pEwRepo = snapshot.repos.find((r) => r.id === "p-e-w/Qwen3-4B-heretic")!;
+    expect(pEwRepo.linkStatus).toBe("ok");
+  });
+
+  it("carries origin linkStatus from raw data", () => {
+    const origin = snapshot.origins.find((o) => o.id === "Qwen/Qwen3-4B")!;
+    expect(origin.linkStatus).toBe("ok");
+  });
+
+  it("marks dead origin linkStatus", () => {
+    // acme/Base-7B is declared as a base but is not an origin in the snapshot
+    // (the repo using it is classified unknown and dropped), so it does not
+    // appear as an Origin. But if it were, its linkStatus would be "dead".
+    const deadOrigin = snapshot.origins.find((o) => o.id === "acme/Base-7B");
+    expect(deadOrigin).toBeUndefined();
+  });
+
+  it("carries recipe linkStatus from bestRepoId", () => {
+    const recipe = snapshot.recipes.find((r) => r.author === "p-e-w")!;
+    const bestRepo = snapshot.repos.find((r) => r.id === recipe.bestRepoId)!;
+    expect(recipe.linkStatus).toBe(bestRepo.linkStatus);
   });
 });

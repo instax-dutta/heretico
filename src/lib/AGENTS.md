@@ -6,7 +6,9 @@ Pure domain logic and the build-time dataset loader.
 
 ## Ownership
 
-- `types.ts` — the single domain schema (Repo, Recipe, Origin, Snapshot)
+- `types.ts` — the single domain schema (Repo, Recipe, Origin, Snapshot),
+  including `LinkStatus` ("ok" | "gated" | "dead") carried on `RepoRecord`,
+  `Origin` and `Recipe`
 - `naming.ts` — parameter/MoE parsing, size classes, families, formats
 - `scoring.ts` — quality score, Pareto, ranking, best pick
 - `query.ts` — filter/sort/search/pagination over leaderboard rows
@@ -42,6 +44,12 @@ Pure domain logic and the build-time dataset loader.
   it. Two chains of tiebreaks means a leaderboard that reads 17, 19, 18.
 - `query.DEFAULT_QUERY` and `parseQuery` are the only definition of filter
   defaults.
+- `LinkStatus` on `RepoRecord`, `Origin` and `Recipe` reflects the last crawl's
+  HEAD check of the HF link target. `RepoRecord.linkStatus` defaults to "ok"
+  for crawled repos (they existed when crawled); `Origin.linkStatus` defaults
+  to "ok" for origins whose declared parent was verified alive; `Recipe.linkStatus`
+  mirrors its `bestRepoId`'s repo link status. Never trust a link without
+  checking `linkStatus` first.
 
 ## Work Guidance
 
@@ -54,6 +62,8 @@ Pure domain logic and the build-time dataset loader.
 
 - `npx vitest run` (whole suite, including `tests/parse` and `tests/ingest`)
 - `node scripts/verify/snapshot.mjs`
+- `node scripts/verify/links.mjs` (requires HF_TOKEN; runs in refresh.yml only,
+  never in `npm test`)
 
 ## Child DOX Index
 

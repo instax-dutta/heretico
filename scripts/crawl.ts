@@ -10,11 +10,11 @@
  */
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { discoverHereticModels, fetchReadme, toRawRepo, type HFRawModel } from "./lib/hf";
+import { discoverHereticModels, checkLink, fetchReadme, toRawRepo, type HFRawModel } from "./lib/hf";
 import { mapLimit } from "./lib/pool";
 import { loadCard, type CardCacheEntry } from "./lib/incremental";
 import { parseCard } from "../src/lib/parse/card";
-import type { ParsedCard, RawRepo } from "../src/lib/types";
+import type { LinkStatus, ParsedCard, RawRepo } from "../src/lib/types";
 
 
 interface RawFile {
@@ -22,6 +22,8 @@ interface RawFile {
   discovery: { tagged: number; named: number };
   repos: (RawRepo & { discoveredBy: "tag" | "name"; hasReadme: boolean })[];
   cards: Record<string, ParsedCard | null>;
+  /** Whether each declared origin id resolves to a live HF page. */
+  originLinkStatus: Record<string, LinkStatus>;
 }
 
 const ROOT = process.cwd();
@@ -87,12 +89,27 @@ async function main(): Promise<void> {
   let reused = 0;
   let fetched = 0;
   let errors = 0;
+  let linkDead = 0;
   let done = 0;
   const cards: Record<string, ParsedCard | null> = {};
   const repos: RawFile["repos"] = [];
 
   await mapLimit(models, Number.isFinite(concurrency) ? concurrency : 10, async (model, index) => {
+    // Verify the repo still exists on HF before spending a README request on it.
+    const linkStatus = await checkLink(model.id, { token });
+    if (linkStatus === "dead") {
+      linkDead += 1;
+      done += 1;
+      if (done % 100 === 0 || done === models.length) {
+        process.stdout.write(
+          `  ${done}/${models.length} repos (${fetched} fetched, ${reused} cached, ${errors} failed, ${linkDead} dead)\r`,
+        );
+      }
+      return;
+    }
+
     const raw = toRawRepo(model);
+    raw.linkStatus = linkStatus;
     const cached = refresh ? null : readCache(raw.id);
     let card: ParsedCard | null = null;
 
@@ -132,24 +149,45 @@ async function main(): Promise<void> {
     done += 1;
     if (done % 100 === 0 || done === models.length) {
       process.stdout.write(
-        `  ${done}/${models.length} repos (${fetched} fetched, ${reused} cached, ${errors} failed)\r`,
+        `  ${done}/${models.length} repos (${fetched} fetched, ${reused} cached, ${errors} failed, ${linkDead} dead)\r`,
       );
     }
   });
   process.stdout.write("\n");
+
+  // Verify declared origin ids (base models). These are never crawled as repos,
+  // so they need their own link check. Concurrency capped at 8 per the link
+  // sweep policy.
+  const originIds = new Set<string>();
+  for (const repo of repos) {
+    for (const baseId of repo.declaredBaseModels) {
+      originIds.add(baseId);
+    }
+  }
+
+  const originLinkStatus: Record<string, LinkStatus> = {};
+  if (originIds.size > 0) {
+    console.log(`Checking ${originIds.size} declared origin links…`);
+    await mapLimit([...originIds], 8, async (originId) => {
+      originLinkStatus[originId] = await checkLink(originId, { token });
+    });
+  }
 
   const output: RawFile = {
     crawledAt: new Date().toISOString(),
     discovery: { tagged: discovery.tagged.length, named: discovery.named.length },
     repos: repos.filter(Boolean),
     cards,
+    originLinkStatus,
   };
 
   mkdirSync(dirname(RAW_PATH), { recursive: true });
   const tmp = `${RAW_PATH}.tmp`;
   writeFileSync(tmp, JSON.stringify(output));
   renameSync(tmp, RAW_PATH);
-  console.log(`Wrote ${RAW_PATH} (${output.repos.length} repos, ${errors} fetch errors)`);
+  console.log(
+    `Wrote ${RAW_PATH} (${output.repos.length} repos, ${errors} fetch errors, ${linkDead} dead links)`,
+  );
 }
 
 main().catch((error) => {

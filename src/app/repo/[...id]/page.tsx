@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Badge, Breadcrumbs, Card } from "@/components/ui";
+import { Badge, Breadcrumbs, Card, HubLink } from "@/components/ui";
 import { getMeasuredRepos, getOrigin, getRepo, pathSegments } from "@/lib/dataset";
 import {
   formatCompact,
   formatDate,
   formatKl,
   formatPercent,
-  huggingFaceUrl,
   originHref,
   repoHref,
 } from "@/lib/format";
@@ -77,14 +76,13 @@ export default async function RepoPage({ params }: PageProps<"/repo/[...id]">) {
             </h1>
             <p className="font-mono text-xs text-zinc-500">{repo.id}</p>
           </div>
-          <a
+          <HubLink
+            id={repo.id}
+            linkStatus={repo.linkStatus}
             className="text-sm underline"
-            href={huggingFaceUrl(repo.id)}
-            rel="noreferrer"
-            target="_blank"
           >
             Open on Hugging Face
-          </a>
+          </HubLink>
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
           <Badge tone="accent">{repo.kind}</Badge>

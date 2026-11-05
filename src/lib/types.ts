@@ -20,6 +20,9 @@ export type RepoKind =
 /** How much we trust a KL/refusal pair. Only high + medium are ranked. */
 export type MetricConfidence = "high" | "medium" | "inherited" | "none";
 
+/** Whether a Hugging Face link target was last seen alive, gated, or dead. */
+export type LinkStatus = "ok" | "gated" | "dead";
+
 /**
  * Whether anything corroborates a recipe beyond its own model card.
  *
@@ -109,6 +112,8 @@ export interface RawRepo {
   safetensorsTotal: number | null;
   files: string[];
   license: string | null;
+  /** Whether the HF link target was last seen alive, gated, or dead. */
+  linkStatus: LinkStatus;
 }
 
 export interface RepoRecord {
@@ -145,6 +150,8 @@ export interface RepoRecord {
   parentIds: string[];
   /** True when the repo is a Heretic conversion or artifact of one. */
   verified: boolean;
+  /** Whether the HF link target was last seen alive, gated, or dead. */
+  linkStatus: LinkStatus;
   /** Human-readable reason for the classification. */
   classificationEvidence: string;
   firstSeenAt: string;
@@ -181,6 +188,8 @@ export interface Recipe {
   benchmarks: Benchmark[];
   /** Source repo that published the numbers (self for direct conversions). */
   evidenceRepoId: string;
+  /** Link status of bestRepoId: whether the HF target is alive, gated, or dead. */
+  linkStatus: LinkStatus;
 }
 
 export interface Origin {
@@ -201,6 +210,8 @@ export interface Origin {
   bestKl: number | null;
   bestRefusalRate: number | null;
   verifiedRepoCount: number;
+  /** Whether the HF link target was last seen alive, gated, or dead. */
+  linkStatus: LinkStatus;
   downloadsAllTime: number;
   downloads30d: number;
   lastModified: string;
