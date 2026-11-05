@@ -95,23 +95,10 @@ async function main(): Promise<void> {
   const repos: RawFile["repos"] = [];
 
   await mapLimit(models, Number.isFinite(concurrency) ? concurrency : 10, async (model, index) => {
-    // Verify the repo still exists on HF before spending a README request on it.
-    const linkStatus = await checkLink(model.id, { token });
-    if (linkStatus === "dead") {
-      linkDead += 1;
-      done += 1;
-      if (done % 100 === 0 || done === models.length) {
-        process.stdout.write(
-          `  ${done}/${models.length} repos (${fetched} fetched, ${reused} cached, ${errors} failed, ${linkDead} dead)\r`,
-        );
-      }
-      return;
-    }
-
     const raw = toRawRepo(model);
-    raw.linkStatus = linkStatus;
     const cached = refresh ? null : readCache(raw.id);
     let card: ParsedCard | null = null;
+    let linkStatus: LinkStatus = "ok";
 
     try {
       const result = await loadCard(
@@ -138,6 +125,18 @@ async function main(): Promise<void> {
       console.warn(`\n  ! ${raw.id}: ${(error as Error).message}`);
       card = cached?.card ?? null;
     }
+
+    // If the README fetch failed (404/401/403), do one HEAD check to
+    // distinguish dead (deleted/renamed) from gated (private/approved-only).
+    // Successful repos need no extra request — the README fetch already
+    // confirmed the target is alive.
+    if (card === null) {
+      linkStatus = await checkLink(model.id, { token });
+      if (linkStatus === "dead") {
+        linkDead += 1;
+      }
+    }
+    raw.linkStatus = linkStatus;
     cards[raw.id] = card;
     repos[index] = {
       ...raw,
