@@ -103,7 +103,8 @@ ablation recipes, and ranks them by KL divergence and refusal rate.
 - Internal links are plain `<a>` anchors, never `next/link`. The App Router
   emits four RSC payloads per route (21,468 files, 254 MB);
   `scripts/prune-rsc-payloads.ts` deletes them so the export fits GitHub
-  Pages, leaving about 5,400 files and 160 MB, and a `<Link>` would fetch files
+  Pages, leaving about 5,400 files and 169 MB of content (`du` reads ~179 MB
+  from per-file block overhead), and a `<Link>` would fetch files
   that are no longer published.
 - Actions are pinned to 40-character commit SHAs, never tags: the workflow
   holds `contents: write` and `pages: write`, so a moved tag would run
@@ -111,6 +112,10 @@ ablation recipes, and ranks them by KL divergence and refusal rate.
   bumps of any size auto-merge once CI is green — sound only because
   `ci.yml`'s `pages-dry-run` job actually runs the pages actions. That job must
   not be removed; `security.mjs` fails if it is.
+- Dependabot also auto-merges npm patch bumps and dev-only minor bumps after CI.
+  A production minor and every npm major wait for a human, because a major can
+  change runtime behaviour without failing a build. The full decision table is
+  in `scripts/AGENTS.md`.
 - `GITHUB_TOKEN` cannot merge a pull request that edits `.github/workflows/`;
   the `workflows` scope is not grantable through `permissions:`. Action bumps
   therefore merge only when the optional `AUTOMERGE_TOKEN` secret (fine-grained
@@ -135,7 +140,7 @@ ablation recipes, and ranks them by KL divergence and refusal rate.
 
 ### Automation
 
-- Four workflows, all in `.github/workflows/`:
+- Three workflow files in `.github/workflows/`, plus Dependabot's hosted updater:
   - `refresh.yml` — the only path that publishes: crawl, snapshot, gates,
     build, prune, Pages upload, commit, deploy, live-freshness check. Daily
     03:17 UTC, on demand, and on any push to `main` touching the pipeline.
@@ -167,8 +172,9 @@ ablation recipes, and ranks them by KL divergence and refusal rate.
   and `public/CNAME` must stay committed: without the first, Pages runs Jekyll
   and silently drops `_next/`, serving a blank site; without the second, the
   custom domain resets to `*.github.io` on every deploy.
-- Humans only: no public JSON API or agent-facing surface beyond what the
-  browser itself needs.
+- Humans first: no public JSON API. The one deliberate machine-facing surface is
+  `public/llms.txt`, generated from the snapshot for AI crawlers; `robots.ts`
+  welcomes those crawlers for exactly that reason and refuses bulk scrapers.
 - Functional completeness comes first; visual design is a later phase.
 - Commit small, atomic, revertible changes.
 

@@ -13,7 +13,7 @@ Offline data pipeline and the runnable oracles behind `GATES.md`.
   `origins`, `recipes` and `families`
 - `prune-rsc-payloads.ts` — after `next build`, deletes the four `.txt` RSC
   payloads the App Router writes per route (21,468 files, 254 MB of the
-  unpruned export). What ships is about 5,400 files and 160 MB. Safe only
+  unpruned export). What ships is about 5,400 files and 169 MB. Safe only
   because every internal link is a plain anchor. Keeps `llms.txt` and
   `robots.txt`, which share the extension, and exits non-zero if either is
   missing. Runs as the last step of `npm run build`.
@@ -92,7 +92,9 @@ Offline data pipeline and the runnable oracles behind `GATES.md`.
 ## Work Guidance
 
 - Test cache/classification behaviour in `tests/` rather than shell scripts.
-- Keep the crawl polite: default concurrency 10–14, no authenticated scraping.
+- Keep the crawl polite: concurrency defaults to 10 and `--concurrency` exists to
+  lower or raise it (12 is the documented "be gentle" example); no authenticated
+  scraping of HTML, only the Hub API.
 - Progress counters report completed work, not input positions, because workers
   finish out of order. Never commit `data/cache/` or crawl logs.
 

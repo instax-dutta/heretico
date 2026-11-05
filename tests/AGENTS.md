@@ -8,7 +8,8 @@ snapshot assembly, plus real-world model-card fixtures.
 ## Ownership
 
 - `fixtures/cards/` — verbatim Hugging Face model cards; do not edit them
-- `parse/`, `ingest/`, `query.test.ts`, `scoring.test.ts`, `snapshot.test.ts`
+- `parse/`, `ingest/`, `naming.test.ts`, `query.test.ts`, `scoring.test.ts`,
+  `snapshot.test.ts`
 
 ## Local Contracts
 

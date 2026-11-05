@@ -6,10 +6,10 @@ export const dynamic = "force-static";
 /**
  * Crawl policy.
  *
- * The site is 487 MB and GitHub Pages allows a soft 100 GB/month of bandwidth,
- * which is about 200 full passes. A handful of crawlers walking every one of
- * the 5,366 URLs every day would spend that on their own, so the welcome is
- * deliberate rather than blanket:
+ * The export is about 170 MB and GitHub Pages allows a soft 100 GB/month of
+ * bandwidth, a few hundred full passes. A handful of crawlers walking every
+ * one of the 5,400 URLs every day would spend that on their own, so the
+ * welcome is deliberate rather than blanket:
  *
  * - Search engines are allowed, because they are how a newcomer finds the page.
  * - AI crawlers are allowed, because `llms.txt` exists specifically to be read

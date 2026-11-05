@@ -52,7 +52,7 @@ Pure domain logic and the build-time dataset loader.
 
 ## Verification
 
-- `npx vitest run tests/*.test.ts`
+- `npx vitest run` (whole suite, including `tests/parse` and `tests/ingest`)
 - `node scripts/verify/snapshot.mjs`
 
 ## Child DOX Index
