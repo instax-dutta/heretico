@@ -154,9 +154,11 @@ export interface Discovery {
 export async function discoverHereticModels(
   options: ListOptions = {},
 ): Promise<Discovery> {
-  const tagged = await listAllModels({ filter: "heretic" }, options);
+  const [tagged, named] = await Promise.all([
+    listAllModels({ filter: "heretic" }, options),
+    listAllModels({ search: "heretic" }, options),
+  ]);
   const taggedIds = new Set(tagged.map((m) => m.id));
-  const named = await listAllModels({ search: "heretic" }, options);
 
   const merged: HFRawModel[] = [];
   for (const model of tagged) merged.push({ ...model, discoveredBy: "tag" });
@@ -241,7 +243,7 @@ export async function checkLink(
       const response = await fetch(`${HF}/${id}`, {
         method: "HEAD",
         headers,
-        signal: AbortSignal.timeout(30_000),
+        signal: AbortSignal.timeout(15_000),
       });
       if (response.status === 200 || response.status === 301 || response.status === 302) {
         return "ok";

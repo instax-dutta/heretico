@@ -5,7 +5,7 @@
  * daily refresh only fetches new or edited READMEs.
  *
  *   npm run crawl -- --limit 300          # dev sample
- *   npm run crawl -- --concurrency 12     # be gentle
+ *   npm run crawl -- --concurrency 15     # be gentle
  *   npm run crawl -- --refresh            # ignore the cache
  */
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
@@ -61,7 +61,7 @@ function writeCache(id: string, value: CardCacheEntry): void {
 
 async function main(): Promise<void> {
   const limit = Number(arg("limit", "0"));
-  const concurrency = Number(arg("concurrency", "10"));
+  const concurrency = Number(arg("concurrency", "15"));
   const refresh = flag("refresh");
   const token = process.env.HF_TOKEN;
 
