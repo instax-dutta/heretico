@@ -29,6 +29,10 @@ interface RawFile {
 const ROOT = process.cwd();
 const RAW_PATH = join(ROOT, "data", "raw.json");
 const CACHE_DIR = join(ROOT, "data", "cache", "cards");
+const ORIGIN_CACHE_PATH = join(ROOT, "data", "cache", "origin-links.json");
+// Reuse a recent Hub liveness result to reduce token strain. Dead repos are
+// never cached (they're dropped), so a stale "ok" is rechecked after the TTL.
+const LINK_TTL_MS = 21 * 24 * 60 * 60 * 1000;
 
 function arg(name: string, fallback: string): string {
   const index = process.argv.indexOf(`--${name}`);
@@ -57,6 +61,30 @@ function readCache(id: string): CardCacheEntry | null {
 function writeCache(id: string, value: CardCacheEntry): void {
   mkdirSync(dirname(cachePath(id)), { recursive: true });
   writeFileSync(cachePath(id), JSON.stringify(value));
+}
+
+type OriginCache = Record<string, { status: LinkStatus; checkedAt: string }>;
+function readOriginCache(): OriginCache {
+  if (!existsSync(ORIGIN_CACHE_PATH)) return {};
+  try {
+    return JSON.parse(readFileSync(ORIGIN_CACHE_PATH, "utf8")) as OriginCache;
+  } catch {
+    return {};
+  }
+}
+function writeOriginCache(value: OriginCache): void {
+  mkdirSync(dirname(ORIGIN_CACHE_PATH), { recursive: true });
+  writeFileSync(ORIGIN_CACHE_PATH, JSON.stringify(value));
+}
+function freshCachedStatus(entry: { status?: LinkStatus; checkedAt?: string; linkStatus?: LinkStatus; linkCheckedAt?: string } | null, now: number): LinkStatus | null {
+  if (!entry) return null;
+  const status = entry.status ?? entry.linkStatus;
+  const checkedAt = entry.checkedAt ?? entry.linkCheckedAt;
+  if (status !== "ok" && status !== "gated") return null;
+  if (!checkedAt) return null;
+  const t = Date.parse(checkedAt);
+  if (!Number.isFinite(t) || now - t > LINK_TTL_MS) return null;
+  return status;
 }
 
 async function main(): Promise<void> {
@@ -98,9 +126,10 @@ async function main(): Promise<void> {
     const raw = toRawRepo(model);
     const cached = refresh ? null : readCache(raw.id);
     let card: ParsedCard | null = null;
+    let result: import("./lib/incremental").CardLoaderResult | null = null;
 
     try {
-      const result = await loadCard(
+      result = await loadCard(
         raw,
         cached,
         (id) => fetchReadme(id, { token }, raw.files),
@@ -125,20 +154,37 @@ async function main(): Promise<void> {
       card = cached?.card ?? null;
     }
 
-    // Verify the repo still resolves (catches deleted/renamed repos even when
-    // README parsing used cache). Drop dead repos so the snapshot never links 404s.
-    const linkStatus = await checkLink(model.id, { token });
+    // Determine repo liveness. A README fetched successfully this run proves the
+    // repo is alive (saves an API call). Reused cache entries reuse a recent
+    // ok/gated check when available; dead repos are never cached.
+    const now = Date.now();
+    let linkStatus: LinkStatus | null = null;
+    if (result?.fetched && result.entry.markdown != null) {
+      linkStatus = "ok";
+    } else if (!refresh) {
+      linkStatus = freshCachedStatus(cached, now);
+    }
+    if (!linkStatus) {
+      linkStatus = await checkLink(model.id, { token });
+    }
     if (linkStatus === "dead") {
       linkDead += 1;
       done += 1;
       if (done % 100 === 0 || done === models.length) {
         process.stdout.write(
-          `  ${done}/${models.length} repos (${fetched} fetched, ${reused} cached, ${errors} failed, ${linkDead} dead, dropped)\r`,
+          `  ${done}/${models.length} repos (${fetched} fetched, ${reused} cached, ${errors} failed, ${linkDead} dead, dropped)
+`,
         );
       }
       return;
     }
     raw.linkStatus = linkStatus;
+    // Persist a fresh liveness result so the next run can skip the Hub call.
+    const checkedAt = new Date().toISOString();
+    const entryToCache: CardCacheEntry = { ...(result?.entry ?? { sha: raw.sha, parserVersion: 2, markdown: cached?.markdown ?? null, card }), linkStatus, linkCheckedAt: checkedAt };
+    if (result?.fetched || entryToCache.linkCheckedAt !== cached?.linkCheckedAt) {
+      writeCache(raw.id, entryToCache);
+    }
     cards[raw.id] = card;
     repos[index] = {
       ...raw,
@@ -150,14 +196,15 @@ async function main(): Promise<void> {
     done += 1;
     if (done % 100 === 0 || done === models.length) {
       process.stdout.write(
-        `  ${done}/${models.length} repos (${fetched} fetched, ${reused} cached, ${errors} failed, ${linkDead} dead)\r`,
+        `  ${done}/${models.length} repos (${fetched} fetched, ${reused} cached, ${errors} failed, ${linkDead} dead)
+`,
       );
     }
   });
   process.stdout.write("\n");
 
   // Verify declared origin ids (base models). These are never crawled as repos,
-  // so they need their own link check.
+  // so they need their own link check. Reuse recent results to reduce API strain.
   const originIds = new Set<string>();
   for (const repo of repos) {
     if (!repo) continue;
@@ -168,10 +215,24 @@ async function main(): Promise<void> {
 
   const originLinkStatus: Record<string, LinkStatus> = {};
   if (originIds.size > 0) {
-    console.log(`Checking ${originIds.size} declared origin links…`);
-    await mapLimit([...originIds], 20, async (originId) => {
-      originLinkStatus[originId] = await checkLink(originId, { token });
-    });
+    const originCache = refresh ? {} : readOriginCache();
+    const now = Date.now();
+    const toCheck = [...originIds].filter((id) => !freshCachedStatus(originCache[id], now));
+    for (const id of originIds) {
+      const cachedStatus = freshCachedStatus(originCache[id], now);
+      if (cachedStatus) originLinkStatus[id] = cachedStatus;
+    }
+    if (toCheck.length > 0) {
+      console.log(`Checking ${toCheck.length} declared origin links (${originIds.size - toCheck.length} cached)…`);
+      await mapLimit(toCheck, 20, async (originId) => {
+        const status = await checkLink(originId, { token });
+        originLinkStatus[originId] = status;
+        originCache[originId] = { status, checkedAt: new Date().toISOString() };
+      });
+      writeOriginCache(originCache);
+    } else {
+      console.log(`Reused cached status for ${originIds.size} declared origin links.`);
+    }
   }
 
   const output: RawFile = {
