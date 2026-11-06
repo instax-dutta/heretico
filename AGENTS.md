@@ -152,9 +152,11 @@ ablation recipes, and ranks them by KL divergence and refusal rate.
 - A failed refresh opens a labelled `refresh-failure` issue and the next green
   run closes it. An open issue therefore means "broken right now". The repair
   list is in `scripts/AGENTS.md`, not here.
-- Two repository secrets: `HF_TOKEN` (required, read-only) and
+- Three repository secrets: `HF_TOKEN` (required, read-only),
   `AUTOMERGE_TOKEN` (fine-grained PAT; without it action bumps wait for one
-  click).
+  click), and `HEARTBEAT_URL` (optional healthchecks.io ping URL; without it the
+  heartbeat step is skipped and nothing outside GitHub notices a pipeline that
+  stops running).
 - Deployed to GitHub Pages at `hdir.sdad.pro`. The domain is written once, in
   `src/lib/site.ts`; nothing else hardcodes it.
 

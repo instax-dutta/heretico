@@ -412,6 +412,10 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       issues: write
+    env:
+      # A healthchecks.io ping URL, created per check. Anybody holding it can
+      # claim the pipeline is alive, so it lives in secrets, never in the repo.
+      HEARTBEAT_URL: ${{ secrets.HEARTBEAT_URL }}
     steps:
       - name: Close any open failure issue
         env:
@@ -425,3 +429,17 @@ jobs:
               --comment "Recovered: $RUN_URL"
             echo "Closed issue #$n"
           done
+
+      # The only thing that notices a pipeline which stops running entirely: a
+      # dropped schedule, a disabled workflow, or an account problem runs no
+      # code, so no gate and no issue can fire. Late is the alarm, and this ping
+      # is what it waits for. It also stays quiet unless the run actually
+      # deployed and the live site verified fresh, which is the state worth
+      # asserting. Inert until HEARTBEAT_URL exists.
+      - name: Ping the external heartbeat
+        if: env.HEARTBEAT_URL != ''
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          curl -fsS -m 20 -o /dev/null --data-binary "$RUN_URL" "$HEARTBEAT_URL" \
+            || echo "::warning::Heartbeat ping failed. The site is fine; the monitor may report a late ping."

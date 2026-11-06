@@ -88,6 +88,10 @@ Offline data pipeline and the runnable oracles behind `GATES.md`.
   refreshes from racing; a human push can still land mid-run, which the commit
   step reports rather than fails. The HF preflight fails only on 401/403; 429 and
   5xx are retried and then tolerated, because throttling is not rejection.
+  A run that deploys and verifies fresh pings `HEARTBEAT_URL` (healthchecks.io);
+  the external check is the only thing that notices the pipeline stopping
+  altogether, because a dropped schedule, a disabled workflow, or an account
+  problem runs no code at all. The step is skipped while that secret is unset.
 - `verify/seo.mjs` also asserts the social card and icons resolve to real files
   with no query string, and that no Next.js template asset is still shipping. A
   broken `og:image` 404s only in someone else's preview, so nothing else catches it.

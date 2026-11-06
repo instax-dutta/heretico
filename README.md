@@ -435,6 +435,11 @@ than the host. `verify-freshness` now fetches `/data/index.json` from the live
 site and fails when it is more than a day behind the committed snapshot, so a
 deploy that stops reaching the host is loud instead of silent.
 
+Nothing inside GitHub can notice a workflow that stops running altogether. A
+successful refresh therefore pings an external check on [healthchecks.io](https://healthchecks.io)
+(`HEARTBEAT_URL`), which emails when the ping stops arriving for four days. The
+step is skipped while that secret is unset.
+
 Because the cache is keyed by commit sha, a refresh only fetches cards whose
 repository actually changed.
 
