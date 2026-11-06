@@ -34,8 +34,10 @@ Offline data pipeline and the runnable oracles behind `GATES.md`.
   `dead`; a throttled or failed check is `unknown`, never death.
 - `lib/link-cache.ts` — `data/cache/links.json`, one liveness answer per repo and
   origin id, reused for `LINK_TTL_MS` (7 days) by both the crawl and the link
-  gate. That is what turns a daily full sweep of ~9k ids into a rotating slice;
-  the full sweep is what exhausted the Hub limit and made 429s look like 404s.
+  gate. That is what turns a full sweep of ~9k ids on every run into a rotating
+  slice; the full sweep is what exhausted the Hub limit and made 429s look like
+  404s. A 7-day TTL over a 72-hour refresh means each id is rechecked roughly
+  every third run.
 - `lib/incremental.ts` — sha + `PARSER_VERSION` keyed cache decision (unit-tested)
 - `lib/pool.ts` — bounded concurrency
 - `verify/*.mjs` — gate oracles: `static`, `suite`, `snapshot`, `app-smoke`,
@@ -68,8 +70,11 @@ Offline data pipeline and the runnable oracles behind `GATES.md`.
   Merging a PR that edits `.github/workflows/` needs the `workflows` scope,
   which `GITHUB_TOKEN` cannot hold, so it uses the optional `AUTOMERGE_TOKEN`
   PAT when present and otherwise skips with an explanation.
-- `../.github/workflows/refresh.yml` — the only path that publishes. Daily
-  03:17 UTC, on demand, and on any push to `main` touching the pipeline. It
+- `../.github/workflows/refresh.yml` — the only path that publishes. A daily
+  03:17 UTC heartbeat, on demand, and on any push to `main` touching the
+  pipeline; the `cadence` job skips the refresh while the committed snapshot is
+  under 60 hours old, because cron cannot express 72 hours and `*/3` on
+  day-of-month restarts at every month boundary. It
   crawls, rebuilds the snapshot, runs the gates, checks HF links, builds,
   prunes, uploads `out/` to Pages, commits the new snapshot, deploys, checks
   the live site is fresh, and opens or closes the `refresh-failure` issue.
@@ -146,8 +151,10 @@ What breaks, how to tell, and the repair. Most of it is one of five causes.
   not pass. The step prints which of the two.
 - **A merge landed but the site did not change.** Pushes made with
   `GITHUB_TOKEN` do not trigger workflows (GitHub's recursion guard), so
-  `refresh.yml` never ran. The next 03:17 UTC cron deploys it. A human push
-  does trigger it.
+  `refresh.yml` never ran. The next 03:17 UTC tick deploys it only if the
+  `cadence` job finds the snapshot due; otherwise it waits for the tick that
+  refreshes. Dispatch the workflow to deploy now. A human push triggers it
+  immediately.
 - **Action bumps stop merging roughly a year from setup.** The
   `AUTOMERGE_TOKEN` PAT expired. Mint a fine-grained one (contents,
   pull-requests, workflows = write, this repo only) and replace the secret.

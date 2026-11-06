@@ -2,9 +2,12 @@ name: Refresh Heretic index
 
 on:
   schedule:
-    # Daily, off-peak UTC. GitHub disables scheduled workflows in a public
-    # repository after 60 days without repository activity, so the bot commit
-    # below is also what keeps this schedule alive.
+    # A daily heartbeat, off-peak UTC. The refresh itself runs every 72 hours:
+    # cron cannot express that (`*/3` on day-of-month restarts at each month
+    # boundary), so the `cadence` job below decides whether this tick refreshes.
+    # The daily tick is also what keeps the schedule alive, because GitHub
+    # disables scheduled workflows in a public repository after 60 days without
+    # repository activity.
     - cron: "17 3 * * *"
   workflow_dispatch:
   # Any push that touches the pipeline must pass the same gates before it can
@@ -32,7 +35,42 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Cheap gate: a checkout and an age check. The refresh below costs a
+  # rate-limited crawl and a publish, so it runs every 72 hours rather than on
+  # every heartbeat. A push or a manual dispatch always refreshes, because those
+  # exist to ship a fix now.
+  cadence:
+    runs-on: ubuntu-latest
+    outputs:
+      due: ${{ steps.gate.outputs.due }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Is the snapshot due?
+        id: gate
+        run: |
+          if [ "${{ github.event_name }}" != "schedule" ]; then
+            echo "due=true" >> "$GITHUB_OUTPUT"
+            echo "Not a scheduled run: refreshing now."
+            exit 0
+          fi
+          # 60, not 72: the tick is only daily, so a run that started a minute
+          # after 03:17 would otherwise read 71.9 hours three days later and
+          # slip to the fourth day.
+          node -e '
+            const fs = require("fs");
+            const snap = JSON.parse(fs.readFileSync("data/snapshot.json", "utf8"));
+            const ageH = (Date.now() - Date.parse(snap.updatedAt)) / 3600000;
+            const due = ageH >= 60;
+            console.log(`snapshot updatedAt ${snap.updatedAt}: ${ageH.toFixed(1)}h old, due=${due}`);
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, `due=${due}\nage_h=${ageH.toFixed(1)}\n`);
+          '
+
   refresh:
+    needs: cadence
+    # A skipped refresh skips deploy with it, so a heartbeat under 60 hours
+    # deploys nothing and leaves the last good snapshot serving.
+    if: needs.cadence.outputs.due == 'true'
     runs-on: ubuntu-latest
     # A cold run (no cache: 8k READMEs + a link sweep) is slow on its own; add
     # the build and the gates and 120 minutes is tight. The cache is saved even
@@ -238,9 +276,10 @@ jobs:
       - id: deployment
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
 
-  # Both this and the schedule exist because the two failure modes are different:
-  # the schedule dies after 60 days without a commit, and a green refresh says
-  # nothing about whether the deploy reached the public site.
+  # Both this and the heartbeat exist because the two failure modes are
+  # different: the heartbeat dies after 60 days without a commit, and a green
+  # refresh says nothing about whether the deploy reached the public site. This
+  # runs on every tick, including the ones the cadence gate skips.
   verify-freshness:
     needs: [refresh, deploy]
     if: always()
@@ -259,7 +298,7 @@ jobs:
             const snap = JSON.parse(fs.readFileSync("data/snapshot.json", "utf8"));
             const ageDays = (Date.now() - Date.parse(snap.updatedAt)) / 86400000;
             console.log(`snapshot updatedAt: ${snap.updatedAt} (${ageDays.toFixed(1)} days old)`);
-            if (ageDays > 3) {
+            if (ageDays > 4) {
               console.log(`::warning::Snapshot is ${ageDays.toFixed(1)} days old. The refresh job may be failing.`);
             }
           '
@@ -321,9 +360,9 @@ jobs:
           REPO: ${{ github.repository }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          echo "::error::The daily Heretic refresh failed. See $RUN_URL"
+          echo "::error::The scheduled Heretic refresh failed. See $RUN_URL"
           gh label create refresh-failure --repo "$REPO" --color B60205 \
-            --description "The daily Heretic refresh is failing" --force
+            --description "The scheduled Heretic refresh is failing" --force
           open=$(gh issue list --repo "$REPO" --label refresh-failure --state open \
             --limit 1 --json number --jq '.[0].number // empty')
           if [ -n "$open" ]; then
@@ -331,7 +370,7 @@ jobs:
             exit 0
           fi
           gh issue create --repo "$REPO" --label refresh-failure \
-            --title "Daily refresh failed" \
+            --title "Scheduled refresh failed" \
             --body "$(printf '%s\n' \
               'The scheduled Heretic refresh did not complete. The site is still serving the last good snapshot, so nothing is lost.' \
               '' \
@@ -343,9 +382,10 @@ jobs:
 
   # The other half of the loop: when a run succeeds, the failure issue goes away,
   # so an open issue always means "broken right now" and never "fixed months ago".
+  # A gate-skipped heartbeat recovers nothing, so it must not close the issue.
   notify-recovered:
-    needs: [refresh, deploy, verify-freshness]
-    if: success()
+    needs: [cadence, refresh, deploy, verify-freshness]
+    if: success() && needs.cadence.outputs.due == 'true'
     runs-on: ubuntu-latest
     permissions:
       issues: write

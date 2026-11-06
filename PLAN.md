@@ -43,8 +43,8 @@ counting: it enriches every repo and resolves it to a canonical base model.
 
 - `npm run crawl` does discovery + incremental enrichment. READMEs are only
   re-fetched when the repo `sha` changed or the repo is new.
-- GitHub Action runs it daily, rebuilds `data/snapshot.json`, runs the test
-  suite / snapshot validator and commits the snapshot.
+- GitHub Action runs it every 72 hours, rebuilds `data/snapshot.json`, runs
+  the test suite / snapshot validator and commits the snapshot.
 - `updatedAt` is recorded in the snapshot and surfaced on every page.
 
 ---

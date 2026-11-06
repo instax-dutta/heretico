@@ -18,7 +18,7 @@ name: Dependabot auto-merge
 #   npm major             - never, read it
 #   actions any           - always (CI runs the pages actions too)
 #
-# `main` has no branch protection on purpose: the daily refresh pushes the
+# `main` has no branch protection on purpose: the refresh pushes the
 # snapshot straight to it, and a required-check ruleset would reject that push
 # and silently stop the site updating. So the wait for CI is explicit below.
 on: pull_request_target

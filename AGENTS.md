@@ -129,7 +129,7 @@ ablation recipes, and ranks them by KL divergence and refusal rate.
   receives secrets.
 - The CSP meta tag in `src/app/layout.tsx` is the only header hardening
   GitHub Pages allows. Do not add `unsafe-eval`; keep `default-src 'self'`.
-- `main` is deliberately unprotected. The daily bot pushes the snapshot
+- `main` is deliberately unprotected. The refresh bot pushes the snapshot
   directly to it, and a required-check ruleset would reject that push and
   silently stop the site updating. Reduce blast radius instead: pinned
   actions and per-job `permissions`.
@@ -141,9 +141,11 @@ ablation recipes, and ranks them by KL divergence and refusal rate.
 ### Automation
 
 - Three workflow files in `.github/workflows/`, plus Dependabot's hosted updater:
-  - `refresh.yml` — the only path that publishes: crawl, snapshot, gates,
-    build, prune, Pages upload, commit, deploy, live-freshness check. Daily
-    03:17 UTC, on demand, and on any push to `main` touching the pipeline.
+  - `refresh.yml` — the only path that publishes: cadence gate, crawl,
+    snapshot, gates, build, prune, Pages upload, commit, deploy, live-freshness
+    check. Refreshes every 72 hours off a daily 03:17 UTC heartbeat, on demand,
+    and on any push to `main` touching the pipeline; the `cadence` job skips the
+    refresh while the committed snapshot is under 60 hours old.
   - `ci.yml` — the same gates plus `pages-dry-run` on every pull request.
   - `dependabot-auto-merge.yml` — merges dependency bumps once CI is green.
   - Dependabot's own updater — weekly, Monday.

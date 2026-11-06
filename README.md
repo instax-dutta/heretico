@@ -17,7 +17,7 @@ Ships as a static export to GitHub Pages (free tier, public repository);
 At the time of the committed snapshot: **8,782 repositories indexed, 6,575 verified, 1,109 canonical upstream models, 1,054 measured ablation recipes (928 verified, 126 unverified), 1,300 direct Heretic conversions**, across 72.3M downloads. 658 of the 1,109 base models have no verified conversion and therefore show no best version.
 <!-- counts:end -->
 
-The index refreshes itself daily; see [Freshness](#freshness).
+The index refreshes itself every 72 hours; see [Freshness](#freshness).
 
 Those counts are not the interesting ones. Most repositories collapse into far
 fewer base models, because one ablation is frequently published as a safetensors
@@ -237,7 +237,7 @@ npm run build     # already runs `npm run og` as its last step
 ```
 
 The card is rendered by `app/og/route.tsx` with `ImageResponse`, reading the
-snapshot, so it cannot advertise counts the site has moved past — the daily
+snapshot, so it cannot advertise counts the site has moved past — the periodic
 refresh regenerates it along with everything else.
 
 It is a **route handler, not the `opengraph-image` file convention**. That
@@ -368,13 +368,13 @@ silently are wired to say so.
   builds the export and runs `configure-pages` / `upload-pages-artifact`
   without deploying, which is the only thing that makes an action bump
   provable: those actions otherwise run only from `refresh.yml` on `main`.
-- **A failed daily run opens a labelled GitHub issue** (`refresh-failure`), which
+- **A failed scheduled run opens a labelled GitHub issue** (`refresh-failure`), which
   emails the maintainer and survives the run log; the next successful run closes
   it. An open issue therefore always means "broken right now".
 - **`HF_TOKEN` is checked before the crawl.** An expired token makes every README
   fetch return 401, which reads as "this repo has no card" rather than an error,
   so the job fails with that reason instead of quietly shrinking the index.
-- **`main` is deliberately unprotected.** The daily bot pushes the snapshot
+- **`main` is deliberately unprotected.** The refresh bot pushes the snapshot
   straight to it, and a required-check ruleset would reject that push and stop
   the site updating — the exact silent failure this setup exists to prevent. The
   blast radius is reduced instead: actions are SHA-pinned, each job declares only
@@ -402,7 +402,8 @@ silently are wired to say so.
 
 ## Freshness
 
-`.github/workflows/refresh.yml` runs daily at 03:17 UTC (and on demand):
+`.github/workflows/refresh.yml` refreshes every 72 hours (and on demand, and on
+any push touching the pipeline):
 
 1. restore `data/cache/` via `actions/cache`,
 2. run the suites and static checks,
@@ -412,11 +413,16 @@ silently are wired to say so.
 6. commit `data/snapshot.json` and `public/llms.txt` if the data changed,
 7. publish `out/` to GitHub Pages.
 
+The schedule itself is a daily 03:17 UTC tick, because cron cannot express "every
+72 hours" (`*/3` on day-of-month restarts at every month boundary). The cheap
+`cadence` job reads `updatedAt` from the committed snapshot and skips the refresh
+unless it is at least 60 hours old. The bot's own snapshot commit is what keeps
+the schedule alive: GitHub disables scheduled workflows in a public repository
+after 60 days without repository activity.
+
 A push that touches `src/`, `scripts/`, `tests/` or the pipeline runs the same
 gates, so a build that prerenders but does not serve is caught before it reaches
-Pages. The bot's own commit is also what keeps the schedule alive: GitHub
-disables scheduled workflows in a public repository after 60 days without
-activity.
+Pages.
 
 The pipeline being green says nothing about the deployed site. On 2026-10-20 the
 refresh succeeded every day for twelve days while the live site stayed frozen on
@@ -425,7 +431,7 @@ than the host. `verify-freshness` now fetches `/data/index.json` from the live
 site and fails when it is more than a day behind the committed snapshot, so a
 deploy that stops reaching the host is loud instead of silent.
 
-Because the cache is keyed by commit sha, a daily run only fetches cards whose
+Because the cache is keyed by commit sha, a refresh only fetches cards whose
 repository actually changed.
 
 **Set the `HF_TOKEN` repository secret.** Without it the crawl is anonymous and
