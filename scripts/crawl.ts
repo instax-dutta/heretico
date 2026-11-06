@@ -160,6 +160,7 @@ async function main(): Promise<void> {
   // so they need their own link check.
   const originIds = new Set<string>();
   for (const repo of repos) {
+    if (!repo) continue;
     for (const baseId of repo.declaredBaseModels) {
       originIds.add(baseId);
     }
