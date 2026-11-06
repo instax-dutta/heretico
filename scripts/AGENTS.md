@@ -41,7 +41,7 @@ Offline data pipeline and the runnable oracles behind `GATES.md`.
 - `lib/incremental.ts` — sha + `PARSER_VERSION` keyed cache decision (unit-tested)
 - `lib/pool.ts` — bounded concurrency
 - `verify/*.mjs` — gate oracles: `static`, `suite`, `snapshot`, `app-smoke`,
-  `seo`, `automation`, `dox`, `links`, sharing helpers in `verify/util.mjs`
+  `seo`, `automation`, `dox`, `links`, `security`, sharing helpers in `verify/util.mjs`
 - `verify/links.mjs` — G-links: checks every Hugging Face link target referenced
   by the committed snapshot via the Hub API. Fails on dead artifact repos (404),
   warns on dead origins, gated repos and unverified ids. Reuses the crawl's
@@ -77,7 +77,10 @@ Offline data pipeline and the runnable oracles behind `GATES.md`.
   day-of-month restarts at every month boundary. It
   crawls, rebuilds the snapshot, runs the gates, checks HF links, builds,
   prunes, uploads `out/` to Pages, commits the new snapshot, deploys, checks
-  the live site is fresh, and opens or closes the `refresh-failure` issue.
+  the live site is fresh, opens or closes the `refresh-failure` issue, and -
+  after the deploy has verified - pings `HEARTBEAT_URL` on healthchecks.io.
+  The deploy step deploys twice at 15 minutes each, because a sync that times
+  out leaves the previous deployment serving and the site a cadence stale.
   Caches `data/cache` and `.next/cache`; `app-smoke` runs with
   `SMOKE_SKIP_BUILD=1` after the build step to avoid a duplicate export.
   `data/cache` uses `actions/cache/restore` plus a separate
@@ -89,9 +92,22 @@ Offline data pipeline and the runnable oracles behind `GATES.md`.
   step reports rather than fails. The HF preflight fails only on 401/403; 429 and
   5xx are retried and then tolerated, because throttling is not rejection.
   A run that deploys and verifies fresh pings `HEARTBEAT_URL` (healthchecks.io);
-  the external check is the only thing that notices the pipeline stopping
+  that external check is the only thing that notices the pipeline stopping
   altogether, because a dropped schedule, a disabled workflow, or an account
   problem runs no code at all. The step is skipped while that secret is unset.
+
+The staleness safeguards, one row per failure that would otherwise ship old
+data:
+
+| failure | guard | status |
+| :-- | :-- | :--: |
+| Hub 429 read as dead repos | only a 404 is `dead`; throttled checks are `unknown` | in |
+| crawl loses part of the index | coverage guard refuses a >10% drop | in |
+| token expired | preflight fails on 401/403, names the cause | in |
+| a failed gate discards the crawl | `data/cache` saved with `if: always()` | in |
+| live site and commit drift | `verify-freshness` fetches the live index | in |
+| Pages sync times out mid-publish | second deploy attempt in the same run, then an issue | in |
+| the pipeline stops running entirely | external heartbeat ping | in |
 - `verify/seo.mjs` also asserts the social card and icons resolve to real files
   with no query string, and that no Next.js template asset is still shipping. A
   broken `og:image` 404s only in someone else's preview, so nothing else catches it.

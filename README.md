@@ -307,20 +307,36 @@ extra configuration.
 
 ### Hosting limits
 
-Two quotas are worth knowing because they are the only things that can take the
-site down:
+Three quotas matter, and every one of them fails in a different way:
 
-- **1 GB published site.** The export is `156 MB` across `5,404` files and
-  grows with the index at roughly `1 MB/day`, so there is over two years of
-  headroom. `verify/app-smoke.mjs` prints the size on every run, warns past
-  700 MB and fails past 900 MB, so the wall arrives as a warning rather than a
-  deploy that stops working.
+- **1 GB published site.** The export is `174 MB` across `5,439` files and grows
+  with the index. `verify/app-smoke.mjs` prints the size on every run, warns
+  past 700 MB and fails past 900 MB, so the wall arrives as a warning rather
+  than a deploy that stops working.
+- **10-minute Pages deployment window.** That is the ceiling that bites first.
+  Pages pushes the export to its CDN a file at a time, and the `deploy-pages`
+  action aborts the sync when its timer runs out — which leaves the previous
+  deployment serving and the site a whole cadence behind. The deploy step
+  therefore tries twice at 15 minutes each, and `app-smoke` fails past 900 MB
+  for the same reason. `out/repo` (110 MB) and `out/models` (50 MB) are the two
+  page shapes to watch as the index grows.
 - **100 GB/month bandwidth** (soft). That is roughly 200 full passes over every
   URL, and the site publishes an `llms.txt` and a 5,366-URL sitemap that invite
-  crawlers. `robots.ts` is therefore a deliberate policy rather than `Allow: /`:
+  crawlers. The first page load weighs 726 KB (632 KB of that is JS, CSS and
+  fonts), and `/data/index.json` is 1.45 MB, uncompressed because Pages does not
+  gzip. `robots.ts` is therefore a deliberate policy rather than `Allow: /`:
   search engines and the AI crawlers that read `llms.txt` are welcome, SEO and
   backlink scrapers are not, and everything else is asked for a five-second
   crawl delay. GitHub emails before it throttles; it does not bill.
+
+Two quotas do **not** apply and should not be chased:
+
+- **Actions minutes** are unlimited and free for standard runners in a public
+  repository. A refresh costs minutes of compute, not an allowance.
+- **Actions cache** is capped per repository at 10 GB (2.51 GB used, roughly
+  0.8 GB a month, mostly `setup-node`'s 143 MB npm cache per lockfile version).
+  Past the cap GitHub evicts rather than billing or failing, so the worst case is
+  one cold crawl at ~47 minutes against a 180-minute job timeout.
 
 ### Why the export is small enough to last
 
@@ -332,7 +348,7 @@ and 254 MB, fetched only by the client router for soft navigation and prefetch.
 
 This site navigates with **plain anchors**, not `next/link`, so nothing asks for
 them. `scripts/prune-rsc-payloads.ts` deletes them after `next build`, taking
-the export to 156 MB and 5,404 files. The rendered pages are byte-identical:
+the export to 174 MB and 5,439 files. The rendered pages are byte-identical:
 every route's visible text was diffed against the pre-prune build and matched
 exactly.
 
