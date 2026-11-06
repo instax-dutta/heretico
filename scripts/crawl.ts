@@ -104,7 +104,7 @@ async function main(): Promise<void> {
       const result = await loadCard(
         raw,
         cached,
-        (id) => fetchReadme(id, { token }),
+        (id) => fetchReadme(id, { token }, raw.files),
         (markdown, options) =>
           parseCard(markdown, {
             selfId: options.selfId,
@@ -155,8 +155,7 @@ async function main(): Promise<void> {
   process.stdout.write("\n");
 
   // Verify declared origin ids (base models). These are never crawled as repos,
-  // so they need their own link check. Concurrency capped at 8 per the link
-  // sweep policy.
+  // so they need their own link check.
   const originIds = new Set<string>();
   for (const repo of repos) {
     for (const baseId of repo.declaredBaseModels) {
@@ -167,7 +166,7 @@ async function main(): Promise<void> {
   const originLinkStatus: Record<string, LinkStatus> = {};
   if (originIds.size > 0) {
     console.log(`Checking ${originIds.size} declared origin links…`);
-    await mapLimit([...originIds], 8, async (originId) => {
+    await mapLimit([...originIds], 20, async (originId) => {
       originLinkStatus[originId] = await checkLink(originId, { token });
     });
   }

@@ -206,9 +206,16 @@ export function toRawRepo(model: HFRawModel): RawRepo {
 };
 }
 
-/** README text, trying the two common casings. */
-export async function fetchReadme(id: string, options: RequestOptions = {}): Promise<string | null> {
-  for (const name of ["README.md", "readme.md"]) {
+/** README text, trying the two common casings (or only those present in siblings). */
+export async function fetchReadme(
+  id: string,
+  options: RequestOptions = {},
+  files?: string[],
+): Promise<string | null> {
+  const names = files
+    ? (["README.md", "readme.md"] as const).filter((n) => files.includes(n))
+    : (["README.md", "readme.md"] as const);
+  for (const name of names.length ? names : ["README.md", "readme.md"]) {
     const response = await hfFetch(`${HF}/${id}/raw/main/${name}`, options);
     if (response.ok) {
       const text = await response.text();
@@ -221,11 +228,11 @@ export async function fetchReadme(id: string, options: RequestOptions = {}): Pro
 }
 
 /**
- * Check whether a Hugging Face repo id resolves to a live page.
+ * Check whether a Hugging Face repo id resolves.
  *
- * Uses a HEAD request so we never download the repo body. Returns:
- *   "ok"   — 200 or 3xx after redirect, the link target is alive
- *   "gated" — 401 or 403, the repo exists but requires authentication
+ * Uses the Hub API (small JSON) instead of the HTML page. Returns:
+ *   "ok"    — repo exists and is not access-gated
+ *   "gated" — repo exists but requires authentication/approval
  *   "dead"  — 404, the repo was deleted or renamed
  *
  * Retries 429 and 5xx; one failing check never throws.
@@ -234,25 +241,25 @@ export async function checkLink(
   id: string,
   options: RequestOptions = {},
 ): Promise<LinkStatus> {
-  const retries = options.retries ?? 4;
+  const retries = options.retries ?? 3;
   const headers: Record<string, string> = { "User-Agent": "heretic-directory-crawler" };
   if (options.token) headers.Authorization = `Bearer ${options.token}`;
 
   for (let attempt = 0; attempt < retries; attempt += 1) {
     try {
-      const response = await fetch(`${HF}/${id}`, {
-        method: "HEAD",
+      const response = await fetch(`${HF}/api/models/${id}`, {
         headers,
-        signal: AbortSignal.timeout(15_000),
+        signal: AbortSignal.timeout(10_000),
       });
-      if (response.status === 200 || response.status === 301 || response.status === 302) {
-        return "ok";
-      }
-      if (response.status === 401 || response.status === 403) {
-        return "gated";
-      }
-      if (response.status === 404) {
-        return "dead";
+      if (response.status === 404) return "dead";
+      if (response.status === 401 || response.status === 403) return "gated";
+      if (response.ok) {
+        try {
+          const body = (await response.json()) as { gated?: boolean | string };
+          return body.gated ? "gated" : "ok";
+        } catch {
+          return "ok";
+        }
       }
       if (response.status === 429 || response.status >= 500) {
         if (attempt === retries - 1) break;
@@ -261,7 +268,6 @@ export async function checkLink(
         await sleep(Math.min(retryAfter > 0 ? retryAfter * 1000 : 1000 * 3 ** attempt, 30_000));
         continue;
       }
-      // Any other status: treat as dead rather than aborting the crawl.
       return "dead";
     } catch {
       if (attempt === retries - 1) break;
@@ -269,6 +275,5 @@ export async function checkLink(
       await sleep(1000 * 2 ** attempt);
     }
   }
-  // Exhausted retries: we can't confirm the link, so treat it as dead.
   return "dead";
 }

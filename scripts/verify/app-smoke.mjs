@@ -4,7 +4,11 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { assert, readJson, run } from "./util.mjs";
 
-run("npm", ["run", "build"]);
+if (process.env.SMOKE_SKIP_BUILD === "1" && existsSync(path.resolve("out"))) {
+  console.log("SMOKE_SKIP_BUILD=1: using existing out/ export.");
+} else {
+  run("npm", ["run", "build"]);
+}
 
 const OUT = path.resolve("out");
 const snapshot = readJson("data/snapshot.json");

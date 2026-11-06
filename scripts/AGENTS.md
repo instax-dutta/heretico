@@ -28,15 +28,18 @@ Offline data pipeline and the runnable oracles behind `GATES.md`.
   from the snapshot, so the index size the README states cannot drift from the
   data. `--check` exits non-zero when the block is stale; `verify/dox.mjs` runs
   it, so a hand-edited number fails the gate instead of rotting.
-- `lib/hf.ts` — Hub REST client (pagination, retries, timeouts, expansions)
+- `lib/hf.ts` — Hub REST client (pagination, retries, timeouts, expansions) and
+  `checkLink` (Hub API `GET /api/models/<id>`, 10s timeout, bounded retries) for
+  `ok`/`gated`/`dead` status without downloading HTML pages.
 - `lib/incremental.ts` — sha + `PARSER_VERSION` keyed cache decision (unit-tested)
 - `lib/pool.ts` — bounded concurrency
 - `verify/*.mjs` — gate oracles: `static`, `suite`, `snapshot`, `app-smoke`,
   `seo`, `automation`, `dox`, `links`, sharing helpers in `verify/util.mjs`
-- `verify/links.mjs` — G-links: HEAD-checks every Hugging Face link target
-  referenced by the committed snapshot. Fails on dead artifact repos (404),
+- `verify/links.mjs` — G-links: checks every Hugging Face link target referenced
+  by the committed snapshot via the Hub API. Fails on dead artifact repos (404),
   warns on dead origins and gated repos. Runs only in `refresh.yml`, never in
-  `npm test` (the suite must stay offline).
+  `npm test` (the suite must stay offline). Uses bounded concurrency (20) and
+  short timeouts; semantics must stay `ok`/`gated`/`dead`.
 - `verify/security.mjs` — G11: actions pinned to SHAs, `pull_request_target`
   confined to `dependabot-auto-merge.yml` and then only without
   `actions/checkout` and gated to `dependabot[bot]`, `ci.yml` still running the
@@ -49,7 +52,8 @@ Offline data pipeline and the runnable oracles behind `GATES.md`.
 - `../.github/workflows/ci.yml` — the full gate suite on every pull request,
   plus `pages-dry-run`, which builds the export and runs
   `configure-pages` / `upload-pages-artifact` without deploying. That job is
-  what makes an action bump provable before it merges.
+  what makes an action bump provable before it merges. Caches `.next/cache` to
+  speed repeated builds without changing output.
 - `../.github/workflows/dependabot-auto-merge.yml` — merges npm patch, dev
   minor, and any `github_actions` bump once CI passes; npm minor on a
   production dependency and every npm major stay for a human. Uses
@@ -60,11 +64,14 @@ Offline data pipeline and the runnable oracles behind `GATES.md`.
   PAT when present and otherwise skips with an explanation.
 - `../.github/workflows/refresh.yml` — the only path that publishes. Daily
   03:17 UTC, on demand, and on any push to `main` touching the pipeline. It
-  crawls, rebuilds the snapshot, runs the gates, builds, prunes, uploads `out/`
-  to Pages, commits the new snapshot, deploys, checks the live site is fresh,
-  and opens or closes the `refresh-failure` issue. `concurrency: refresh-index`
-  with `cancel-in-progress: false` keeps two refreshes from racing; a human push
-  can still land mid-run, which the commit step reports rather than fails.
+  crawls, rebuilds the snapshot, runs the gates, checks HF links, builds,
+  prunes, uploads `out/` to Pages, commits the new snapshot, deploys, checks
+  the live site is fresh, and opens or closes the `refresh-failure` issue.
+  Caches `data/cache` and `.next/cache`; `app-smoke` runs with
+  `SMOKE_SKIP_BUILD=1` after the build step to avoid a duplicate export.
+  `concurrency: refresh-index` with `cancel-in-progress: false` keeps two
+  refreshes from racing; a human push can still land mid-run, which the commit
+  step reports rather than fails.
 - `verify/seo.mjs` also asserts the social card and icons resolve to real files
   with no query string, and that no Next.js template asset is still shipping. A
   broken `og:image` 404s only in someone else's preview, so nothing else catches it.
@@ -96,9 +103,10 @@ Offline data pipeline and the runnable oracles behind `GATES.md`.
 ## Work Guidance
 
 - Test cache/classification behaviour in `tests/` rather than shell scripts.
-- Keep the crawl polite: concurrency defaults to 10 and `--concurrency` exists to
-  lower or raise it (12 is the documented "be gentle" example); no authenticated
-  scraping of HTML, only the Hub API.
+- Keep the crawl polite: concurrency defaults to 15 and `--concurrency` exists to
+  lower or raise it; no authenticated scraping of HTML, only the Hub API. Link
+  checks use the Hub API with bounded concurrency/timeouts and must preserve
+  `ok`/`gated`/`dead` semantics and dead-artifact failure policy.
 - Progress counters report completed work, not input positions, because workers
   finish out of order. Never commit `data/cache/` or crawl logs.
 

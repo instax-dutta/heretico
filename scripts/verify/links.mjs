@@ -12,8 +12,8 @@
 import { readJson } from "./util.mjs";
 
 const HF = "https://huggingface.co";
-const CONCURRENCY = 8;
-const RETRIES = 4;
+const CONCURRENCY = 20;
+const RETRIES = 3;
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -23,19 +23,19 @@ async function checkLink(id, token) {
 
   for (let attempt = 0; attempt < RETRIES; attempt += 1) {
     try {
-      const response = await fetch(`${HF}/${id}`, {
-        method: "HEAD",
+      const response = await fetch(`${HF}/api/models/${id}`, {
         headers,
-        signal: AbortSignal.timeout(30_000),
+        signal: AbortSignal.timeout(10_000),
       });
-      if (response.status === 200 || response.status === 301 || response.status === 302) {
-        return "ok";
-      }
-      if (response.status === 401 || response.status === 403) {
-        return "gated";
-      }
-      if (response.status === 404) {
-        return "dead";
+      if (response.status === 404) return "dead";
+      if (response.status === 401 || response.status === 403) return "gated";
+      if (response.ok) {
+        try {
+          const body = await response.json();
+          return body?.gated ? "gated" : "ok";
+        } catch {
+          return "ok";
+        }
       }
       if (response.status === 429 || response.status >= 500) {
         if (attempt === RETRIES - 1) break;
