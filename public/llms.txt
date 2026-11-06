@@ -4,7 +4,7 @@ An index of Heretic (abliterated) models published on Hugging Face, ranked by
 how little the weights drifted (KL divergence) and how few refusals remain.
 
 Snapshot of 2026-11-06: 1,109 base models, 1,054 measured ablations
-(928 verified, 126 unverified) from 6,575 repositories.
+(928 verified, 126 unverified) from 6,576 repositories.
 
 ## What this is
 
