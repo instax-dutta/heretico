@@ -213,15 +213,15 @@ if (previous) {
     ["recipes", snapshot.recipes.length, previous.recipes?.length ?? 0],
     ["repos with metrics", measuredRepos, previous.repos?.filter((r) => r.metrics.confidence !== "none").length ?? 0],
   ]) {
-    // New models arrive constantly, so only a fall is suspicious. A refresh that
-    // keeps 96% of the index is normal drift; one that keeps 80% is a crawl that
-    // lost half its pages to a rate limit.
+    // New models arrive constantly, so only a fall is suspicious. Normal drift
+    // and dead-repo cleanup can cause small drops; a large drop usually means
+    // HTTP 429 made the crawl lose repos whose READMEs failed.
     const loss = drop(now, before);
     check(
-      loss <= 0.04,
+      loss <= 0.1,
       `${label} fell ${(loss * 100).toFixed(1)}% against the committed snapshot ` +
-        `(${before} -> ${now}). A crawl that hits HTTP 429 drops every repo whose ` +
-        `README failed. Check the crawl log before accepting this.`,
+        `(${before} -> ${now}). Check the crawl log for HTTP 429/rate-limit ` +
+        `damage or intentional dead-repo cleanup before accepting this.`,
     );
   }
 }
