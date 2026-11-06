@@ -98,7 +98,6 @@ async function main(): Promise<void> {
     const raw = toRawRepo(model);
     const cached = refresh ? null : readCache(raw.id);
     let card: ParsedCard | null = null;
-    let linkStatus: LinkStatus = "ok";
 
     try {
       const result = await loadCard(
@@ -126,15 +125,18 @@ async function main(): Promise<void> {
       card = cached?.card ?? null;
     }
 
-    // If the README fetch failed (404/401/403), do one HEAD check to
-    // distinguish dead (deleted/renamed) from gated (private/approved-only).
-    // Successful repos need no extra request — the README fetch already
-    // confirmed the target is alive.
-    if (card === null) {
-      linkStatus = await checkLink(model.id, { token });
-      if (linkStatus === "dead") {
-        linkDead += 1;
+    // Verify the repo still resolves (catches deleted/renamed repos even when
+    // README parsing used cache). Drop dead repos so the snapshot never links 404s.
+    const linkStatus = await checkLink(model.id, { token });
+    if (linkStatus === "dead") {
+      linkDead += 1;
+      done += 1;
+      if (done % 100 === 0 || done === models.length) {
+        process.stdout.write(
+          `  ${done}/${models.length} repos (${fetched} fetched, ${reused} cached, ${errors} failed, ${linkDead} dead, dropped)\r`,
+        );
       }
+      return;
     }
     raw.linkStatus = linkStatus;
     cards[raw.id] = card;
@@ -184,7 +186,7 @@ async function main(): Promise<void> {
   writeFileSync(tmp, JSON.stringify(output));
   renameSync(tmp, RAW_PATH);
   console.log(
-    `Wrote ${RAW_PATH} (${output.repos.length} repos, ${errors} fetch errors, ${linkDead} dead links)`,
+    `Wrote ${RAW_PATH} (${output.repos.length} repos, ${errors} fetch errors, ${linkDead} dead dropped)`,
   );
 }
 
