@@ -275,6 +275,12 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+        with:
+          # The export is ~5,400 files and ~169 MB, and Pages pushes it to its
+          # CDN a file at a time. Syncs have reached ten minutes, and the
+          # action's default timeout then cancels the deployment after the sync
+          # has already finished, which fails a run that published nothing.
+          timeout: 1800000
 
   # Both this and the heartbeat exist because the two failure modes are
   # different: the heartbeat dies after 60 days without a commit, and a green
