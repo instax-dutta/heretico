@@ -416,7 +416,11 @@ any push touching the pipeline):
 The schedule itself is a daily 03:17 UTC tick, because cron cannot express "every
 72 hours" (`*/3` on day-of-month restarts at every month boundary). The cheap
 `cadence` job reads `updatedAt` from the committed snapshot and skips the refresh
-unless it is at least 60 hours old. The bot's own snapshot commit is what keeps
+unless it is at least 60 hours old. Because `updatedAt` only advances when the
+refresh actually commits, an index that changes on every refresh runs every 72
+hours, and one that changes on none refreshes on consecutive ticks: a warm run
+fetches no READMEs, so that costs little and is what finds the next model. The
+bot's own snapshot commit is what keeps
 the schedule alive: GitHub disables scheduled workflows in a public repository
 after 60 days without repository activity.
 

@@ -57,6 +57,10 @@ jobs:
           # 60, not 72: the tick is only daily, so a run that started a minute
           # after 03:17 would otherwise read 71.9 hours three days later and
           # slip to the fourth day.
+          # updatedAt only advances when a refresh commits, so a stretch with no
+          # data change keeps this due and refreshes daily. That is deliberate:
+          # a warm refresh costs no README fetches and finds the new repo that
+          # would otherwise never appear.
           node -e '
             const fs = require("fs");
             const snap = JSON.parse(fs.readFileSync("data/snapshot.json", "utf8"));
