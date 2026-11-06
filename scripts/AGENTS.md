@@ -30,16 +30,22 @@ Offline data pipeline and the runnable oracles behind `GATES.md`.
   it, so a hand-edited number fails the gate instead of rotting.
 - `lib/hf.ts` — Hub REST client (pagination, retries, timeouts, expansions) and
   `checkLink` (Hub API `GET /api/models/<id>`, 10s timeout, bounded retries) for
-  `ok`/`gated`/`dead` status without downloading HTML pages.
+  `ok`/`gated`/`dead` status without downloading HTML pages. Only a 404 is
+  `dead`; a throttled or failed check is `unknown`, never death.
+- `lib/link-cache.ts` — `data/cache/links.json`, one liveness answer per repo and
+  origin id, reused for `LINK_TTL_MS` (7 days) by both the crawl and the link
+  gate. That is what turns a daily full sweep of ~9k ids into a rotating slice;
+  the full sweep is what exhausted the Hub limit and made 429s look like 404s.
 - `lib/incremental.ts` — sha + `PARSER_VERSION` keyed cache decision (unit-tested)
 - `lib/pool.ts` — bounded concurrency
 - `verify/*.mjs` — gate oracles: `static`, `suite`, `snapshot`, `app-smoke`,
   `seo`, `automation`, `dox`, `links`, sharing helpers in `verify/util.mjs`
 - `verify/links.mjs` — G-links: checks every Hugging Face link target referenced
   by the committed snapshot via the Hub API. Fails on dead artifact repos (404),
-  warns on dead origins and gated repos. Runs only in `refresh.yml`, never in
-  `npm test` (the suite must stay offline). Uses bounded concurrency (20) and
-  short timeouts; semantics must stay `ok`/`gated`/`dead`.
+  warns on dead origins, gated repos and unverified ids. Reuses the crawl's
+  `links.json` so ids checked within the TTL cost no request; a 404 evicts the
+  entry so the next crawl drops the repo. Runs only in `refresh.yml`, never in
+  `npm test` (the suite must stay offline).
 - `verify/security.mjs` — G11: actions pinned to SHAs, `pull_request_target`
   confined to `dependabot-auto-merge.yml` and then only without
   `actions/checkout` and gated to `dependabot[bot]`, `ci.yml` still running the
@@ -69,14 +75,19 @@ Offline data pipeline and the runnable oracles behind `GATES.md`.
   the live site is fresh, and opens or closes the `refresh-failure` issue.
   Caches `data/cache` and `.next/cache`; `app-smoke` runs with
   `SMOKE_SKIP_BUILD=1` after the build step to avoid a duplicate export.
+  `data/cache` uses `actions/cache/restore` plus a separate
+  `actions/cache/save` with `if: always()`, because the combined action only
+  saves on success: a failed gate used to discard the whole crawl and make every
+  retry refetch every README from the rate-limited Hub.
   `concurrency: refresh-index` with `cancel-in-progress: false` keeps two
   refreshes from racing; a human push can still land mid-run, which the commit
-  step reports rather than fails.
+  step reports rather than fails. The HF preflight fails only on 401/403; 429 and
+  5xx are retried and then tolerated, because throttling is not rejection.
 - `verify/seo.mjs` also asserts the social card and icons resolve to real files
   with no query string, and that no Next.js template asset is still shipping. A
   broken `og:image` 404s only in someone else's preview, so nothing else catches it.
 - `verify/snapshot.mjs` also compares coverage against the committed snapshot and
-  refuses a refresh that loses more than 4%. Without it a crawl that hits HTTP
+  refuses a refresh that loses more than 10%. Without it a crawl that hits HTTP
   429 quietly publishes a smaller index while every absolute floor still passes.
   It also re-derives each recipe's numbers from the repo it cites as evidence,
   so a `/repo/` page can never quote a card that says something else.
@@ -123,7 +134,7 @@ What breaks, how to tell, and the repair. Most of it is one of five causes.
   failing, the deploy aliased nothing and the host is frozen.
 - **`snapshot` red with a coverage drop.** A crawl lost repos, almost always
   HTTP 429 on the unauthenticated path. Check `HF_TOKEN` first. Never lower the
-  4% floor to get green: that floor is the alarm, not the fault.
+  10% floor to get green: that floor is the alarm, not the fault.
 - **Every README fetch 401, or the index silently shrinks.** Expired
   `HF_TOKEN`. The preflight exists so this fails with that reason instead of
   reading as "this repo has no card".

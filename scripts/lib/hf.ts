@@ -231,16 +231,18 @@ export async function fetchReadme(
  * Check whether a Hugging Face repo id resolves.
  *
  * Uses the Hub API (small JSON) instead of the HTML page. Returns:
- *   "ok"    — repo exists and is not access-gated
- *   "gated" — repo exists but requires authentication/approval
- *   "dead"  — 404, the repo was deleted or renamed
+ *   "ok"      — repo exists and is not access-gated
+ *   "gated"   — repo exists but requires authentication/approval
+ *   "dead"    — 404, the repo was deleted or renamed
+ *   "unknown" — the Hub throttled or errored; this is NOT evidence of death
  *
- * Retries 429 and 5xx; one failing check never throws.
+ * Only a 404 is death. Reporting a throttled request as "dead" is what silently
+ * shrank the index: 429s during a sweep dropped live repos.
  */
 export async function checkLink(
   id: string,
   options: RequestOptions = {},
-): Promise<LinkStatus> {
+): Promise<LinkStatus | "unknown"> {
   const retries = options.retries ?? 3;
   const headers: Record<string, string> = { "User-Agent": "heretic-directory-crawler" };
   if (options.token) headers.Authorization = `Bearer ${options.token}`;
@@ -268,12 +270,12 @@ export async function checkLink(
         await sleep(Math.min(retryAfter > 0 ? retryAfter * 1000 : 1000 * 3 ** attempt, 30_000));
         continue;
       }
-      return "dead";
+      return "unknown";
     } catch {
       if (attempt === retries - 1) break;
       options.onRetry?.(id, attempt + 1, 0);
       await sleep(1000 * 2 ** attempt);
     }
   }
-  return "dead";
+  return "unknown";
 }

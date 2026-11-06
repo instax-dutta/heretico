@@ -13,6 +13,7 @@ import { dirname, join } from "node:path";
 import { discoverHereticModels, checkLink, fetchReadme, toRawRepo, type HFRawModel } from "./lib/hf";
 import { mapLimit } from "./lib/pool";
 import { loadCard, type CardCacheEntry } from "./lib/incremental";
+import { freshStatus, readLinkCache, writeLinkCache, type LinkCache } from "./lib/link-cache";
 import { parseCard } from "../src/lib/parse/card";
 import type { LinkStatus, ParsedCard, RawRepo } from "../src/lib/types";
 
@@ -29,10 +30,6 @@ interface RawFile {
 const ROOT = process.cwd();
 const RAW_PATH = join(ROOT, "data", "raw.json");
 const CACHE_DIR = join(ROOT, "data", "cache", "cards");
-const ORIGIN_CACHE_PATH = join(ROOT, "data", "cache", "origin-links.json");
-// Reuse a recent Hub liveness result to reduce token strain. Dead repos are
-// never cached (they're dropped), so a stale "ok" is rechecked after the TTL.
-const LINK_TTL_MS = 21 * 24 * 60 * 60 * 1000;
 
 function arg(name: string, fallback: string): string {
   const index = process.argv.indexOf(`--${name}`);
@@ -61,30 +58,6 @@ function readCache(id: string): CardCacheEntry | null {
 function writeCache(id: string, value: CardCacheEntry): void {
   mkdirSync(dirname(cachePath(id)), { recursive: true });
   writeFileSync(cachePath(id), JSON.stringify(value));
-}
-
-type OriginCache = Record<string, { status: LinkStatus; checkedAt: string }>;
-function readOriginCache(): OriginCache {
-  if (!existsSync(ORIGIN_CACHE_PATH)) return {};
-  try {
-    return JSON.parse(readFileSync(ORIGIN_CACHE_PATH, "utf8")) as OriginCache;
-  } catch {
-    return {};
-  }
-}
-function writeOriginCache(value: OriginCache): void {
-  mkdirSync(dirname(ORIGIN_CACHE_PATH), { recursive: true });
-  writeFileSync(ORIGIN_CACHE_PATH, JSON.stringify(value));
-}
-function freshCachedStatus(entry: { status?: LinkStatus; checkedAt?: string; linkStatus?: LinkStatus; linkCheckedAt?: string } | null, now: number): LinkStatus | null {
-  if (!entry) return null;
-  const status = entry.status ?? entry.linkStatus;
-  const checkedAt = entry.checkedAt ?? entry.linkCheckedAt;
-  if (status !== "ok" && status !== "gated") return null;
-  if (!checkedAt) return null;
-  const t = Date.parse(checkedAt);
-  if (!Number.isFinite(t) || now - t > LINK_TTL_MS) return null;
-  return status;
 }
 
 async function main(): Promise<void> {
@@ -118,9 +91,18 @@ async function main(): Promise<void> {
   let fetched = 0;
   let errors = 0;
   let linkDead = 0;
+  let unverified = 0;
   let done = 0;
   const cards: Record<string, ParsedCard | null> = {};
   const repos: RawFile["repos"] = [];
+  // One liveness answer per id, shared by repos and declared origins.
+  const linkCache: LinkCache = refresh ? {} : readLinkCache();
+  const startedAt = Date.now();
+  const cachedLink = (id: string): LinkStatus | null =>
+    refresh ? null : freshStatus(linkCache, id, startedAt);
+  const remember = (id: string, status: LinkStatus): void => {
+    linkCache[id] = { status, checkedAt: new Date().toISOString() };
+  };
 
   await mapLimit(models, Number.isFinite(concurrency) ? concurrency : 10, async (model, index) => {
     const raw = toRawRepo(model);
@@ -155,19 +137,32 @@ async function main(): Promise<void> {
     }
 
     // Determine repo liveness. A README fetched successfully this run proves the
-    // repo is alive (saves an API call). Reused cache entries reuse a recent
-    // ok/gated check when available; dead repos are never cached.
-    const now = Date.now();
+    // repo is alive, so it costs no second request. Otherwise reuse a recent
+    // answer and only sweep the repos whose answer has expired. Only a status
+    // obtained now refreshes the cache timestamp, or the TTL would never lapse.
     let linkStatus: LinkStatus | null = null;
+    let checkedNow = false;
     if (result?.fetched && result.entry.markdown != null) {
       linkStatus = "ok";
-    } else if (!refresh) {
-      linkStatus = freshCachedStatus(cached, now);
+      checkedNow = true;
+    } else {
+      linkStatus = cachedLink(raw.id);
     }
     if (!linkStatus) {
-      linkStatus = await checkLink(model.id, { token });
+      const checked = await checkLink(model.id, { token });
+      checkedNow = true;
+      if (checked === "unknown") {
+        // Throttled, not gone. Dropping the repo here is what shrank the index.
+        // Keep it with its last answer; the link gate re-checks it later.
+        unverified += 1;
+        linkStatus = linkCache[raw.id]?.status ?? (raw.gated ? "gated" : "ok");
+        checkedNow = false;
+      } else {
+        linkStatus = checked;
+      }
     }
     if (linkStatus === "dead") {
+      if (checkedNow) remember(raw.id, linkStatus);
       linkDead += 1;
       done += 1;
       if (done % 100 === 0 || done === models.length) {
@@ -179,12 +174,7 @@ async function main(): Promise<void> {
       return;
     }
     raw.linkStatus = linkStatus;
-    // Persist a fresh liveness result so the next run can skip the Hub call.
-    const checkedAt = new Date().toISOString();
-    const entryToCache: CardCacheEntry = { ...(result?.entry ?? { sha: raw.sha, parserVersion: 2, markdown: cached?.markdown ?? null, card }), linkStatus, linkCheckedAt: checkedAt };
-    if (result?.fetched || entryToCache.linkCheckedAt !== cached?.linkCheckedAt) {
-      writeCache(raw.id, entryToCache);
-    }
+    if (checkedNow) remember(raw.id, linkStatus);
     cards[raw.id] = card;
     repos[index] = {
       ...raw,
@@ -215,21 +205,25 @@ async function main(): Promise<void> {
 
   const originLinkStatus: Record<string, LinkStatus> = {};
   if (originIds.size > 0) {
-    const originCache = refresh ? {} : readOriginCache();
-    const now = Date.now();
-    const toCheck = [...originIds].filter((id) => !freshCachedStatus(originCache[id], now));
+    const toCheck: string[] = [];
     for (const id of originIds) {
-      const cachedStatus = freshCachedStatus(originCache[id], now);
-      if (cachedStatus) originLinkStatus[id] = cachedStatus;
+      const cached = cachedLink(id);
+      if (cached) originLinkStatus[id] = cached;
+      else toCheck.push(id);
     }
     if (toCheck.length > 0) {
       console.log(`Checking ${toCheck.length} declared origin links (${originIds.size - toCheck.length} cached)…`);
       await mapLimit(toCheck, 20, async (originId) => {
         const status = await checkLink(originId, { token });
+        if (status === "unknown") {
+          // Unverified, not dead: keep the last answer rather than claiming the
+          // origin is gone, and leave it out of the cache so it retries.
+          originLinkStatus[originId] = linkCache[originId]?.status ?? "ok";
+          return;
+        }
         originLinkStatus[originId] = status;
-        originCache[originId] = { status, checkedAt: new Date().toISOString() };
+        remember(originId, status);
       });
-      writeOriginCache(originCache);
     } else {
       console.log(`Reused cached status for ${originIds.size} declared origin links.`);
     }
@@ -247,8 +241,10 @@ async function main(): Promise<void> {
   const tmp = `${RAW_PATH}.tmp`;
   writeFileSync(tmp, JSON.stringify(output));
   renameSync(tmp, RAW_PATH);
+  writeLinkCache(linkCache);
   console.log(
-    `Wrote ${RAW_PATH} (${output.repos.length} repos, ${errors} fetch errors, ${linkDead} dead dropped)`,
+    `Wrote ${RAW_PATH} (${output.repos.length} repos, ${errors} fetch errors, ` +
+      `${linkDead} dead dropped, ${unverified} unverified)`,
   );
 }
 

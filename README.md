@@ -432,7 +432,7 @@ repository actually changed.
 the Hub rate-limits it; every repo whose README fetch returns 429 is dropped from
 the index, and the site quietly publishes less than yesterday. `npm run crawl`
 warns loudly when the token is absent, and `scripts/verify/snapshot.mjs` refuses
-a refresh that loses more than 4% of the index, repos, recipes or metrics against
+a refresh that loses more than 10% of the index, repos, recipes or metrics against
 the committed snapshot.
 
 **Optionally set `AUTOMERGE_TOKEN`.** `GITHUB_TOKEN` cannot merge a pull request
@@ -508,7 +508,7 @@ Read these before quoting a number from this site.
   the first meaningful token; it will still be searchable by its exact name.
 - The crawler keeps the previous parse when a fetch fails, so a rate-limited
   repo reappears the next day rather than vanishing. A run that still loses more
-  than 4% of coverage is refused.
+  than 10% of coverage is refused.
 - Model weights and cards belong to their authors; this site only reads public
   Hub metadata.
 

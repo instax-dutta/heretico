@@ -34,7 +34,10 @@ concurrency:
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    # A cold run (no cache: 8k READMEs + a link sweep) is slow on its own; add
+    # the build and the gates and 120 minutes is tight. The cache is saved even
+    # when a later step fails, so only the very first run pays this.
+    timeout-minutes: 180
     permissions:
       contents: write # commits the refreshed snapshot back to main
       pages: write # configure-pages / upload-pages-artifact
@@ -52,7 +55,10 @@ jobs:
       # Card texts keyed by repo id + commit sha. The run-id key makes every run
       # a fresh entry, restored from the newest matching prefix below, which is
       # what makes the crawl incremental: unchanged repos are never refetched.
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      # Restore and save are separate steps because actions/cache only saves its
+      # post step on success: one failed gate used to throw away the whole crawl
+      # and force the next run to refetch every README from the rate-limited Hub.
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: data/cache
           key: heretic-cache-${{ github.run_id }}
@@ -75,7 +81,8 @@ jobs:
 
       # An expired or revoked token makes every README fetch 401, which reads as
       # "this repo has no card" rather than an error. Fail here with the reason
-      # instead of letting the index quietly shrink.
+      # instead of letting the index quietly shrink. A 429 is throttling, not
+      # rejection: retry, then carry on and let the crawl's own backoff handle it.
       - name: Is HF_TOKEN still valid?
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
@@ -84,14 +91,27 @@ jobs:
             echo "::error::HF_TOKEN is not set. The crawl would be rate-limited and drop repos."
             exit 1
           fi
-          status=$(curl -sS -o /dev/null -w "%{http_code}" \
-            -H "Authorization: Bearer $HF_TOKEN" \
-            "https://huggingface.co/api/models?limit=1")
-          echo "Hugging Face auth check: HTTP $status"
-          if [ "$status" != "200" ]; then
-            echo "::error::HF_TOKEN is rejected by the Hugging Face API (HTTP $status). Rotate the secret."
-            exit 1
-          fi
+          for attempt in 1 2 3 4; do
+            status=$(curl -sS -o /dev/null -w "%{http_code}" \
+              -H "Authorization: Bearer $HF_TOKEN" \
+              "https://huggingface.co/api/models?limit=1" || echo "000")
+            echo "Hugging Face auth check (attempt $attempt): HTTP $status"
+            case "$status" in
+              200) exit 0 ;;
+              401|403)
+                echo "::error::HF_TOKEN is rejected by the Hugging Face API (HTTP $status). Rotate the secret."
+                exit 1
+                ;;
+              429|5*|000)
+                sleep $((attempt * 15))
+                ;;
+              *)
+                echo "::error::Unexpected Hugging Face API response (HTTP $status)."
+                exit 1
+                ;;
+            esac
+          done
+          echo "::warning::Hugging Face is throttling the API. Continuing; the crawl backs off per request."
 
       # The crawl is the only step that touches the network, so it is the only
       # step that can hang or be rate-limited. Every request has a timeout and
@@ -109,6 +129,15 @@ jobs:
           echo "::error::The crawl failed. The committed snapshot is still valid, so" \
                "this run stops here and the site stays on the last good data."
           exit 1
+
+      # Always: a crawl that later trips a gate has still done the expensive part,
+      # and discarding it makes every retry start over against the rate limit.
+      - name: Save the crawl cache
+        if: always()
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: data/cache
+          key: heretic-cache-${{ github.run_id }}
 
       - name: Build snapshot
         run: npm run snapshot

@@ -12,6 +12,9 @@ Committed snapshot and local crawl caches.
   `{ sha, parserVersion, markdown, card }`. Unchanged sha + current
   `PARSER_VERSION` reuses the parse; a bumped parser version re-parses cached
   markdown without a request; a changed sha refetches.
+- `cache/links.json` — gitignored `{ id: { status, checkedAt } }` for every repo
+  and declared origin, reused for seven days by both the crawl and the link gate
+  (see `scripts/lib/link-cache.ts`). Delete it to force a full link sweep.
 
 ## Local Contracts
 

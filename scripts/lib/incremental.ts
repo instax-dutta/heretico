@@ -12,9 +12,6 @@ export interface CardCacheEntry {
   /** Raw card text; the source for re-parsing after a parser change. */
   markdown?: string | null;
   card?: ParsedCard | null;
-  /** Last Hub liveness check (ok/gated). Cached to reduce API strain; dead repos are dropped, never cached. */
-  linkStatus?: "ok" | "gated";
-  linkCheckedAt?: string;
 }
 
 export interface CardLoaderResult {
@@ -51,8 +48,6 @@ export async function loadCard(
           parserVersion: PARSER_VERSION,
           markdown: cached.markdown,
           card,
-          linkStatus: cached.linkStatus,
-          linkCheckedAt: cached.linkCheckedAt,
         },
       };
     }
