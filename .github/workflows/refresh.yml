@@ -98,7 +98,7 @@ jobs:
       # bounded retries inside scripts/lib/hf.ts.
       - name: Crawl Hugging Face
         id: crawl
-        run: npm run crawl
+        run: npm run crawl -- --concurrency 8
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         continue-on-error: true
