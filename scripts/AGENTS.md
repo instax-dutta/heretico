@@ -155,6 +155,12 @@ What breaks, how to tell, and the repair. Most of it is one of five causes.
   `cadence` job finds the snapshot due; otherwise it waits for the tick that
   refreshes. Dispatch the workflow to deploy now. A human push triggers it
   immediately.
+- **Pages deploys timing out.** The export is ~170 MB in ~5,400 files and Pages
+  gives a deployment ten minutes, so the deploy step tries twice at 15 minutes
+  each. If both fail, the previous deployment keeps serving: the site is stale,
+  not down. Re-run the failed job to publish the committed snapshot. If this
+  recurs, the export is too large for the host, and `out/repo` (110 MB) is the
+  first place to look.
 - **Action bumps stop merging roughly a year from setup.** The
   `AUTOMERGE_TOKEN` PAT expired. Mint a fine-grained one (contents,
   pull-requests, workflows = write, this repo only) and replace the secret.

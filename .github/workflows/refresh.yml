@@ -264,6 +264,10 @@ jobs:
   # Pages publishes the artifact the refresh job uploaded. It runs only when the
   # build and the gates above succeeded, so a failed crawl leaves the previous
   # deployment serving rather than publishing a half-built one.
+  #
+  # A timed-out sync is not a failed publish: the previous deployment keeps
+  # serving, so the site quietly stays a whole cadence behind. Two attempts,
+  # 15 minutes each, keep that inside one run instead of the next tick.
   deploy:
     needs: refresh
     runs-on: ubuntu-latest
@@ -275,16 +279,25 @@ jobs:
       cancel-in-progress: false
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: ${{ steps.retry.outputs.page_url || steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+        continue-on-error: true
         with:
           # The export is ~5,400 files and ~169 MB, and Pages pushes it to its
           # CDN a file at a time. Syncs have reached ten minutes, and the
           # action's default timeout then cancels the deployment after the sync
           # has already finished, which fails a run that published nothing.
-          timeout: 1800000
+          timeout: 900000
+
+      # Fails the job only if both attempts fail, so notify-failure reports an
+      # outage and not a transient slow sync.
+      - id: retry
+        if: steps.deployment.outcome == 'failure'
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+        with:
+          timeout: 900000
 
   # Both this and the heartbeat exist because the two failure modes are
   # different: the heartbeat dies after 60 days without a commit, and a green
