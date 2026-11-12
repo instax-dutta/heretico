@@ -14,7 +14,7 @@ Ships as a static export to GitHub Pages (free tier, public repository);
 `NEXT_PUBLIC_SITE_URL` defaults to `https://hdir.sdad.pro`.
 
 <!-- counts:begin -->
-At the time of the committed snapshot: **8,913 repositories indexed, 6,681 verified, 1,118 canonical upstream models, 1,062 measured ablation recipes (934 verified, 128 unverified), 1,309 direct Heretic conversions**, across 73.7M downloads. 661 of the 1,118 base models have no verified conversion and therefore show no best version.
+At the time of the committed snapshot: **9,111 repositories indexed, 6,828 verified, 1,123 canonical upstream models, 1,069 measured ablation recipes (938 verified, 131 unverified), 1,319 direct Heretic conversions**, across 76.7M downloads. 665 of the 1,123 base models have no verified conversion and therefore show no best version.
 <!-- counts:end -->
 
 The index refreshes itself every 72 hours; see [Freshness](#freshness).
