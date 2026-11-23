@@ -3,8 +3,8 @@
 An index of Heretic (abliterated) models published on Hugging Face, ranked by
 how little the weights drifted (KL divergence) and how few refusals remain.
 
-Snapshot of 2026-11-22: 1,158 base models, 1,111 measured ablations
-(970 verified, 141 unverified) from 7,211 repositories.
+Snapshot of 2026-11-23: 1,159 base models, 1,111 measured ablations
+(970 verified, 141 unverified) from 7,226 repositories.
 
 ## What this is
 
@@ -24,7 +24,7 @@ count, publisher and the exact card text the numbers came from.
 - `/leaderboard/` — every ranked conversion, filterable by family, size, format
 - `/models/` — all base models, searchable
 - `/models/<owner>/<name>/` — every Heretic version of one model, best first
-- `/families/` — by family (292 families)
+- `/families/` — by family (293 families)
 - `/methodology/` — scoring, confidence, provenance, limits
 
 ## Scoring
@@ -58,7 +58,7 @@ differences matter, 0.01 does not.
 ## Machine-readable
 
 - `/data/index.json` — every recipe, origin and family
-- `/sitemap.xml` — all canonical URLs (5,762 URLs)
+- `/sitemap.xml` — all canonical URLs (5,771 URLs)
 - Model pages carry JSON-LD `Dataset` records
 
 Data refreshes daily from the public Hub. The index is independent and not
